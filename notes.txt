@@ -1,0 +1,129 @@
+﻿// Array of vectors
+// Tiles have pointers to vectors that pass in them
+// Pathfinding?
+// Pathfinding routes are the sides of the shapes, or the vectors themselves (a small offset is needed)
+// And the vectors in bewteen the enpoints
+// Mobs will "follow" the vectors, they can only switch vectors at the endpoints
+// // Tiles will store which pathfinding vectors they contain
+// Evey tile that doens't contain a path vector, must store all accessible enpoints, in order of promixity
+// The vectors provide continuity
+// 
+// If a tile has more than one path, pick the closest one
+// The nearest path vecter is gaurennteed to be aviable, the nearst endpoint isn't
+// Attach a vector to the endpoint to the mob position, then project it onto the path vector. If the
+// Projection + starting point isn't on the path the closest point is the endpoint (pick the closer endpoint)
+// Pathfinding points are the endpoints of each wall vector, offsetted perpendicularly to make the shape bigger
+// To render, make the shape sinto textures, and check all of the visable tile susing the camera
+// Then clip when rendering each shape using the camera
+
+// Vec playerPos, Vec A, Vec 𝙖
+// Vec temp = playerPos - A;
+// temp = temp.projectOn(𝙖);
+// temp += A;
+// if(temp.x < (A.x + 𝙖.x) && temp.x > (A.x) && temp.y < (A.y + 𝙖.y) && temp.y > (A.y)) // temp is a point somehwere on A + span{𝙖}
+//     Vec tether = playerPos - temp;
+// else
+//     Vec tether = nearest endpoint;
+
+
+
+
+game polgon testing code:
+int x = player.getComponent<CameraComponent>().getCamera().x;
+	int y = player.getComponent<CameraComponent>().getCamera().y;
+	SDL_FRect oof{ player.getComponent<MechanicalComponent>().getCollisionBox() };
+	oof.x -= x;
+	oof.y -= y;
+
+	auto temp = [&](Polygon& shape) {
+		auto& verts = shape.getVertices();
+		for (int i = 0; i < verts.size(); ++i)
+		{
+		SDL_RenderDrawLine(mRenderer.get(), verts[i].getX() - x, verts[i].getY() - y, verts[(i + 1) % verts.size()].getX() - x, verts[(i + 1) % verts.size()].getY() - y);
+		}
+	};
+
+	MechanicalComponent& mechComp = player.getComponent<MechanicalComponent>();
+	const SDL_FRect& collisionBox = mechComp.getCollisionBox();
+
+	// test
+	std::vector<Vec> vertices1{ Vec{collisionBox.x, collisionBox.y}, Vec{collisionBox.x + collisionBox.w, collisionBox.y},
+		Vec{collisionBox.x + collisionBox.w, collisionBox.y + collisionBox.h}, Vec{collisionBox.x, collisionBox.y + collisionBox.h} };
+	Polygon player1{ std::move(vertices1) };
+	player1.rotateBy(15);
+
+	static int lol = 0.f;
+	// std::vector<Vec> vertices{ Vec{2100.f, 1400.f}, Vec{2400.f, 1400.f}, Vec{2400.f, 1700.f}, Vec{2100.f, 1700.f} };
+	std::vector<Vec> vertices{ Vec{2100.f, 1400.f}, Vec{2400.f, 1400.f}, Vec{2550.f, 1700.f},  Vec{2500.f, 1800.f}, Vec{2050.f, 1500.f} };
+	Polygon wall1{ vertices };
+	Polygon wall2{ std::move(vertices) };
+	// wall1.rotateBy(lol++);
+	lol %= 360;
+	wall1.moveBy(Vec{ -500.f,0 });
+
+	wall2.rotateBy(35.f);
+	wall2.moveBy(Vec{ -500.f,0 });
+
+
+	temp(wall1);
+	temp(wall2);
+	temp(player1);
+
+	// SDL_RenderDrawRectF(mRenderer.get(), &oof);
+
+
+
+
+polygon collision testing code
+ // test
+    std::vector<Vec> vertices1{ Vec{collisionBox.x, collisionBox.y}, Vec{collisionBox.x + collisionBox.w, collisionBox.y},
+        Vec{collisionBox.x + collisionBox.w, collisionBox.y + collisionBox.h}, Vec{collisionBox.x, collisionBox.y + collisionBox.h} };
+    Polygon player{ std::move(vertices1) };
+    player.rotateBy(15);
+
+    std::vector<Vec> vertices{ Vec{2100.f, 1400.f}, Vec{2400.f, 1400.f}, Vec{2550.f, 1700.f},  Vec{2500.f, 1800.f}, Vec{2050.f, 1500.f} };
+    Polygon wall1{ vertices };
+    Polygon wall2{ std::move(vertices) };
+    static int lol = 0;
+    // wall1.rotateBy(lol++);
+    lol %= 360;
+    wall1.moveBy(Vec{ -500.f,0 });
+
+    wall2.rotateBy(35.f);
+    wall2.moveBy(Vec{ -500.f,0 });
+    mechComp.addToPos(Polygon::resolveCollisions(player, std::vector<Polygon>{wall1, wall2}));
+
+
+// https:// www.techiedelight.com/use-struct-key-std-unordered_map-cpp/
+struct hash_unordered_pair_fn
+{
+    template <class T1, class T2>
+    std::size_t operator() (const std::pair<T1, T2>& pair) const
+    {
+        std::size_t h1 = std::hash<T1>()(pair.first);
+        std::size_t h2 = std::hash<T2>()(pair.second);
+
+        return h1 ^ h2;
+    }
+};
+
+// This template class generates a unique id for every type(s) using it
+// The dummy function's address is resolved at compile time
+// Static types are used to avoid creating the class and to have 1 id per type rather than per object
+// https:// stackoverflow.com/questions/1708458/template-metaprogram-converting-type-to-unique-number
+
+// using typeID = void (*)();
+// 
+// template <typename... Arguments>
+// struct IdGen {
+//    IdGen() = delete;
+// 
+//    static constexpr inline typeID getTypeID()
+//    {
+//        return &IdGen::dummy;
+//    }
+// 
+// private:
+//    // Every instantiation of the template has its own copy
+//    static void dummy() {};
+// };

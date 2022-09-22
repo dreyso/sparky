@@ -1,0 +1,148 @@
+#include "../header/texture.h"
+
+#include <SDL.h>
+#include <SDL_image.h>
+#include <SDL_ttf.h>
+
+#include <string>
+
+
+Texture::Texture(SDL_Renderer* defaultRenderer, std::string pathOrText, TTF_Font* defaultFont, SDL_Color* textColor)
+{
+	mDefaultRenderer = defaultRenderer;
+	mDefaultFont = defaultFont;
+
+	// If font is provided, text texture is assumed
+	if (defaultFont == nullptr)
+	{
+		if (loadTexture(pathOrText) == false)
+			exit(-1);
+	}
+	else
+	{
+		if(loadTextTexture(pathOrText, *textColor) == false)
+			exit(-1);
+	}
+
+	// Get texture dimensions
+	if (SDL_QueryTexture(mTexture.get(), nullptr, nullptr, &mWidth, &mHeight) != 0)
+	{ 
+		fprintf(stderr, "%s", SDL_GetError());
+		exit(-1);
+	}
+}
+
+Texture::Texture(Texture&& texture) noexcept
+	: mWidth{ texture.mWidth }, mHeight{ texture.mHeight }, mTexture{ std::move(texture.mTexture) }, mDefaultRenderer{ texture.mDefaultRenderer }, mDefaultFont{ texture.mDefaultFont }
+{
+	// Reset passed in texture
+	texture.mWidth = 0;
+	texture.mHeight = 0;
+	texture.mDefaultRenderer = nullptr;
+	texture.mDefaultFont = nullptr;
+}
+
+// Load texture from file
+bool Texture::loadTexture(std::string path)
+{
+	// Create new texture
+	mTexture.reset(IMG_LoadTexture(mDefaultRenderer, path.c_str()));
+	if (mTexture == nullptr)
+	{ 
+		fprintf(stderr, "%s", SDL_GetError());
+		return false;
+	}
+
+	return true;
+}
+
+// Loads texture from text
+bool Texture::loadTextTexture(std::string textureText, SDL_Color textColor)
+{
+	// Create surface
+	SDL_Surface* textSurface = TTF_RenderText_Blended(mDefaultFont, textureText.c_str(), textColor);
+	if (textSurface == nullptr)
+	{
+		fprintf(stderr, "%s", TTF_GetError());
+		return false;
+	}
+
+	// Create texture from surface
+	mTexture.reset(SDL_CreateTextureFromSurface(mDefaultRenderer, textSurface));
+
+	// Free surface
+	SDL_FreeSurface(textSurface);
+
+	if (mTexture == nullptr)
+	{
+		fprintf(stderr, "%s", SDL_GetError());
+		return false;
+	}
+
+	return true;
+}
+
+// Set color modulation
+bool Texture::setColorModulation(Uint8 red, Uint8 green, Uint8 blue)
+{
+	if (SDL_SetTextureColorMod(mTexture.get(), red, green, blue) != 0)
+	{
+		fprintf(stderr, "%s", SDL_GetError());
+		return false;
+	}
+
+	return true;
+}
+
+// Set texture blend mode
+bool Texture::setBlendMode(SDL_BlendMode blending)
+{
+	if (SDL_SetTextureBlendMode(mTexture.get(), blending) != 0)
+	{
+		fprintf(stderr, "%s", SDL_GetError());
+		return false;
+	}
+
+	return true;
+}
+
+// Set transparency
+bool Texture::setTransparency(Uint8 alpha)
+{
+	if (SDL_SetTextureAlphaMod(mTexture.get(), alpha) != 0)
+	{
+		fprintf(stderr, "%s", SDL_GetError());
+		return false;
+	}
+
+	return true;
+}
+
+// Draws texture at given point
+bool Texture::draw(int x, int y, const SDL_Rect* crop, double angle, SDL_Point* center, SDL_RendererFlip flip)
+{
+	// Set rendering area
+	SDL_Rect renderArea{ x, y, mWidth, mHeight };
+
+	// If cropping texture, change render area dimensions to the crop's
+	if (crop != nullptr)
+	{
+		renderArea.w = crop->w;
+		renderArea.h = crop->h;
+	}
+
+	// Draw texture
+	if (SDL_RenderCopyEx(mDefaultRenderer, mTexture.get(), crop, &renderArea, angle, center, flip) != 0)
+	{
+		fprintf(stderr, "%s", SDL_GetError());
+		return false;
+	}
+
+	return true;
+}
+
+// Get texture width
+int Texture::getWidth() const{	return mWidth;	}
+
+// Get texture height
+int Texture::getHeight() const{	return mHeight;	}
