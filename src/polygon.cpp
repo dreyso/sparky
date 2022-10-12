@@ -8,31 +8,72 @@
 #include <stdexcept>
 
 
-Polygon::Polygon(std::vector<Vec>& vertices) : mAbsoluteVertices{ vertices }
-{
-    if (mAbsoluteVertices.size() < 3)   // Polygon must contain atleast 3 vertices
-        throw(std::runtime_error{ "Error: Open polygon\n" });
-    else if (isConvex() == false)       // Polygon must be convex
-        throw(std::runtime_error{ "Error: Concave polygon\n" });
-
-    initPos();  // Determine center of the polygon
-}
-
 Polygon::Polygon(std::vector<Vec>&& vertices) : mAbsoluteVertices{ std::move(vertices) }
 {
-    if (mAbsoluteVertices.size() < 3)   // Polygon must contain atleast 3 vertices
+    if (mAbsoluteVertices.size() < 3)            // Polygon must contain atleast 3 vertices
         throw(std::runtime_error{ "Error: Open polygon\n" });
-    else if (isConvex() == false)       // Polygon must be convex
-        throw(std::runtime_error{ "Error: Concave polygon\n" });
+    else if (isClockwise() == false)             // Polygon vertices must be in clockwise order
+        throw(std::runtime_error{ "Error: Polygon vertices not in clockwise order\n" });
+    else if (hasCollinearEdges() == true)        // Polygon cannot have collinear edges
+        throw(std::runtime_error{ "Error: Polygon has collinear edges\n" });
+    else if (isSelfIntersecting() == true)       // Polygon must be not self intersect
+        throw(std::runtime_error{ "Error: Polygon self intersects\n" });
 
     initPos();  // Determine center of the polygon
 }
 
-bool Polygon::isConvex()
+Polygon::Polygon(std::vector<Vec>& vertices) : mAbsoluteVertices{ vertices }
 {
-    bool prevPositive = (mAbsoluteVertices[2] - mAbsoluteVertices[0]).cross(mAbsoluteVertices[1] - mAbsoluteVertices[0]) >= 0.f;
+    if (mAbsoluteVertices.size() < 3)            // Polygon must contain atleast 3 vertices
+        throw(std::runtime_error{ "Error: Open polygon\n" });
+    else if (isClockwise() == false)             // Polygon vertices must be in clockwise order
+        throw(std::runtime_error{ "Error: Polygon vertices not in clockwise order\n" });
+    else if (hasCollinearEdges() == true)        // Polygon cannot have collinear edges
+        throw(std::runtime_error{ "Error: Polygon has collinear edges\n" });
+    else if (isSelfIntersecting() == true)       // Polygon must be not self intersect
+        throw(std::runtime_error{ "Error: Polygon self intersects\n" });
 
-    for (int i = 1; i < mAbsoluteVertices.size(); ++i)
+    initPos();  // Determine center of the polygon
+}
+
+Polygon::Polygon(std::vector<Vec>& vertices, int) : mAbsoluteVertices{ vertices }
+{
+    if (mAbsoluteVertices.size() < 3)   // Polygon must contain atleast 3 vertices
+        throw(std::runtime_error{ "Error: Open polygon\n" });
+
+    initPos();  // Determine center of the polygon
+}
+
+Polygon::Polygon(std::vector<Vec>& vertices, int) : mAbsoluteVertices{ std::move(vertices) }
+{
+    if (mAbsoluteVertices.size() < 3)   // Polygon must contain atleast 3 vertices
+        throw(std::runtime_error{ "Error: Open polygon\n" });
+
+    initPos();  // Determine center of the polygon
+}
+
+bool Polygon::isClockwise() const
+{
+    float area = 0.f;
+
+    for (int i = 0; i < mAbsoluteVertices.size(); ++i)
+    {
+        // Get every adjacent pair of vertices
+        Vec 𝙫0{ mAbsoluteVertices[i] };
+        Vec 𝙫1{ mAbsoluteVertices[(i + 1) % mAbsoluteVertices.size()] };
+
+        // Find the area under the curve (2x actual area)
+        area += (𝙫1.getX() - 𝙫0.getX()) * (𝙫1.getY() + 𝙫0.getY());
+    }
+
+    // If area is negative, the veretices are in counterclockwise order
+    // If it's 0, the polygon self intersects
+    return area > 0;
+}
+
+bool Polygon::hasCollinearEdges() const
+{
+    for (int i = 0; i < mAbsoluteVertices.size(); ++i)
     {
         // Get every trio of vertices
         Vec v0{ mAbsoluteVertices[i] };
@@ -43,16 +84,41 @@ bool Polygon::isConvex()
         v1 -= v0;
         v2 -= v0;
 
-        // Find the current direction of the polygon's edge
-        bool currentPositive = v2.cross(v1) >= 0.f;
-
-        // If the signs are different, the polygon is not convex
-        if (currentPositive ^ prevPositive)
+        // If any of the cross products are 0, the edges are collinear
+        if (v2.cross(v1) == 0.f)
             return false;
-
-        prevPositive = currentPositive;
     }
     return true;
+}
+
+bool Polygon::isSelfIntersecting() const
+{
+    auto edges = getEdges();
+
+    for (auto& iEdge : edges)
+    {
+        for (auto& jEdge : edges)
+        {
+            if (Vec::findIntersection(iEdge.first, iEdge.second, jEdge.first, jEdge.second).first != Solution::NO_SOLUTION)
+                return false;
+        }
+    }
+}
+
+std::vector<std::pair<Vec, Vec>> Polygon::getEdges() const
+{
+    auto& vertices = getVertices();
+
+    std::vector<std::pair<Vec, Vec>> edges(vertices.size());
+    for (int i = 0; i < edges.size(); ++i)
+    {
+        // Store the offset of each edge
+        edges[i].first = vertices[i];
+
+        // Subtract current vertex from the next one for a clockwise perimeter
+        edges[i].second = vertices[(i + 1) % edges.size()] - vertices[i];
+    }
+    return edges;
 }
 
 // Bourke, Paul (July 1997). "Polygons and meshes"
@@ -98,21 +164,6 @@ void Polygon::initPos()
     }
 }
 
-std::vector<Vec> Polygon::getCollisionAxi() const
-{
-    std::vector<Vec> edges(mAbsoluteVertices.size());
-    for (int i = 0; i < edges.size(); ++i)
-    {
-        // Subtract current vertex from the next one for a clockwise perimeter
-        edges[i] = mAbsoluteVertices[(i + 1) % edges.size()] - mAbsoluteVertices[i];
-
-        // Rotate the vector perpendicular to itself
-        edges[i] *= Matrix{ 0, -1, 1, 0 };
-        edges[i].normalize();
-    }
-    return edges;
-}
-
 const std::vector<Vec>& Polygon::getVertices() const
 {
     return mAbsoluteVertices;
@@ -146,7 +197,67 @@ void Polygon::rotateTo(float angle)
     updateAbsoluteVertices();
 }
 
-Vec Polygon::resolveCollisions(const Polygon& moveableShape, const std::vector<Polygon>& fixedShapes)
+void Polygon::updateAbsoluteVertices()
+{
+    // Absolute vetices are the sum of the polygon's position and its corresponding relative vertices
+    for (int i = 0; i < mRelativeVertices.size(); ++i)
+    {
+        mAbsoluteVertices[i] = mPos + mRelativeVertices[i];
+    }
+}
+
+void Polygon::updateRotation()
+{
+    float radians = mRotAngle * static_cast<float>(M_PI) / 180.f;
+    Matrix rotMatrix{cosf(radians), -sinf(radians), sinf(radians), cosf(radians)};
+    for (auto& relativeVertex : mRelativeVertices)
+    {
+        relativeVertex *= rotMatrix;
+    }
+}
+
+ConvexPolygon::ConvexPolygon(std::vector<Vec>& vertices) : Polygon{ vertices, 0 }
+{
+    if (isConvex() == false)       // Polygon must be convex
+        throw(std::runtime_error{ "Error: Concave polygon\n" });
+}
+
+ConvexPolygon::ConvexPolygon(std::vector<Vec>& vertices) : Polygon{ std::move(vertices), 0 }
+{
+    if (isConvex() == false)       // Polygon must be convex
+        throw(std::runtime_error{ "Error: Concave polygon\n" });
+}
+
+bool ConvexPolygon::isConvex()
+{
+    auto& vertices = getVertices();
+
+    bool prevPositive = (vertices[2] - vertices[0]).cross(vertices[1] - vertices[0]) >= 0.f;
+
+    for (int i = 1; i < vertices.size(); ++i)
+    {
+        // Get every trio of vertices
+        Vec v0{ vertices[i] };
+        Vec v1{ vertices[(i + 1) % vertices.size()] };
+        Vec v2{ vertices[(i + 2) % vertices.size()] };
+
+        // Define 2 vectors from the first vertex to the other 2
+        v1 -= v0;
+        v2 -= v0;
+
+        // Find the current direction of the polygon's edge
+        bool currentPositive = v2.cross(v1) >= 0.f;
+
+        // If the signs are different, the polygon is not convex
+        if (currentPositive ^ prevPositive)
+            return false;
+
+        prevPositive = currentPositive;
+    }
+    return true;
+}
+
+Vec ConvexPolygon::resolveCollisions(const ConvexPolygon& moveableShape, const std::vector<ConvexPolygon>& fixedShapes)
 {
     Vec totalSolution{ 0.f,0.f };
 
@@ -170,7 +281,7 @@ Vec Polygon::resolveCollisions(const Polygon& moveableShape, const std::vector<P
 }
 
 // Use seperating axis theorm to find a resolution vector
-Vec Polygon::resolveCollision(const Polygon& moveableShape, const Polygon& fixedShape)
+Vec ConvexPolygon::resolveCollision(const ConvexPolygon& moveableShape, const ConvexPolygon& fixedShape)
 {
     std::vector<Vec> axi;
     {
@@ -196,7 +307,7 @@ Vec Polygon::resolveCollision(const Polygon& moveableShape, const Polygon& fixed
         float moveableShapeMin = std::numeric_limits<float>::infinity();
         for (auto& vertex : moveableShape.getVertices())
         {
-            float partialScalarProjection = vertex*axis;
+            float partialScalarProjection = vertex * axis;
             moveableShapeMax = std::max(moveableShapeMax, partialScalarProjection);
             moveableShapeMin = std::min(moveableShapeMin, partialScalarProjection);
         }
@@ -205,7 +316,7 @@ Vec Polygon::resolveCollision(const Polygon& moveableShape, const Polygon& fixed
         float fixedShapeMin = std::numeric_limits<float>::infinity();
         for (auto& vertex : fixedShape.getVertices())
         {
-            float partialScalarProjection = vertex*axis;
+            float partialScalarProjection = vertex * axis;
             fixedShapeMax = std::max(fixedShapeMax, partialScalarProjection);
             fixedShapeMin = std::min(fixedShapeMin, partialScalarProjection);
         }
@@ -234,21 +345,20 @@ Vec Polygon::resolveCollision(const Polygon& moveableShape, const Polygon& fixed
     return smallestDepthDirection * smallestDepth;
 }
 
-void Polygon::updateAbsoluteVertices()
+std::vector<Vec> ConvexPolygon::getCollisionAxi() const
 {
-    // Absolute vetices are the sum of the polygon's position and its corresponding relative vertices
-    for (int i = 0; i < mRelativeVertices.size(); ++i)
+    auto& vertices = getVertices();
+
+    std::vector<Vec> edges(vertices.size());
+    for (int i = 0; i < edges.size(); ++i)
     {
-        mAbsoluteVertices[i] = mPos + mRelativeVertices[i];
+        // Subtract current vertex from the next one for a clockwise perimeter
+        edges[i] = vertices[(i + 1) % edges.size()] - vertices[i];
+
+        // Rotate the vector perpendicular to itself
+        edges[i] *= Matrix{ 0, -1, 1, 0 };
+        edges[i].normalize();
     }
+    return edges;
 }
 
-void Polygon::updateRotation()
-{
-    float radians = mRotAngle * static_cast<float>(M_PI) / 180.f;
-    Matrix rotMatrix{cosf(radians), -sinf(radians), sinf(radians), cosf(radians)};
-    for (auto& relativeVertex : mRelativeVertices)
-    {
-        relativeVertex *= rotMatrix;
-    }
-}
