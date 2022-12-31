@@ -1,24 +1,17 @@
 ﻿#pragma once
 #include "../header/polygon.h"
 #include "../header/util.h"
+
 #include <cmath>
 #include <vector>
+#include <string>
 #include <iterator>
+#include <algorithm>
+#include <regex>
 #include <limits>
-
 #include <fstream>
 #include <sstream>
-#include <algorithm>// for reverse
-#include <stdio.h>
-
-#include <string>
-#include <regex>
-
-
 #include <stdexcept>
-// When loking at SDL polygons, store them in counter clockwise order
-// It will be clockwise on the cordinate plane
-// Reverse svg files
 
 
 Polygon::Polygon(std::vector<Vec>&& vertices) : mAbsoluteVertices{ std::move(vertices) }

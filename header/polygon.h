@@ -2,13 +2,10 @@
 #include "vec.h"
 
 #include <vector>
-#include <string>
 
 
 class ConvexPolygon;
 
-// Polygon must be not self intersect, and cannot have collinear edges
-// Vertices must be in clockwise order
 class Polygon
 {
 public:
