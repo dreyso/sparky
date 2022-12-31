@@ -50,7 +50,7 @@ bool GameLoader::init()
 	}
 
 	// Create window
-	mWindow.reset(SDL_CreateWindow("SDL 2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS));
+	mWindow.reset(SDL_CreateWindow("SDL 2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS));
 	if (mWindow == nullptr)
 	{
 		fprintf(stderr, "%s", SDL_GetError());
@@ -136,7 +136,7 @@ Game::Game() : GameLoader{}, mMap{ mRenderer.get() }
 	// player.addComponent<BehaviorComponent>(&mMap, &player, 3500.f, 500.f, 7000.f);
 	player.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
 	player.addComponent<CameraComponent>(mWindow.get());
-	// sob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
+	//sob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
 	player.addComponent<SharedTextureComponent<int>>(&player.getComponent<CameraComponent>().getCamera(), mRenderer.get(), "assets/images/triangle.png");
 	player.addComponent<MapCollisionComponent>(&mMap);
 
@@ -151,7 +151,7 @@ Game::Game() : GameLoader{}, mMap{ mRenderer.get() }
 	bob.addComponent<MechanicalComponent>(SDL_FRect{ 100.f, 100.f, 30.f, 30.f });
 	bob.addComponent<BehaviorComponent>(&mMap, &sob, 3500.f, 500.f, 7000.f);
 	bob.addComponent<SharedTextureComponent<int>>(&player.getComponent<CameraComponent>().getCamera());
-	// bob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
+	//bob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
 }
 
 Game::~Game()
@@ -189,6 +189,8 @@ bool Game::loadAssets()
 
 void Game::handleEvents()
 {
+	if (mPaused == true)
+		printf("lol");
 	// Handle all events
 	while (SDL_PollEvent(&mEvent) != 0 || mPaused)
 	{
@@ -267,14 +269,16 @@ void Game::handleEvents()
 void Game::update()
 {
 	// Calculate time since last frame
-	mDeltaTime = std::min(mTimer.getSeconds(), 0.02f);
+	mDeltaTime = mTimer.getSeconds();
+	
+	// Restart timer
+	mTimer.start();
 
 	player.update(mDeltaTime);
 	bob.update(mDeltaTime);
 	sob.update(mDeltaTime);
 
-	// Restart timer
-	mTimer.start();
+	
 }
 
 void Game::render()

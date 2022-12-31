@@ -11,7 +11,8 @@ KeyPressAccelComponent::KeyPressAccelComponent(Entity* owner, SDL_Event* event, 
 {
 	// Get diagonal acceleration
 	float diagonalAccelForce = sqrtf(powf(mAccelForce, 2.f) + powf(mAccelForce, 2.f));
-	// Normalize it
+	
+    // Normalize it
 	mDiagonalAccelForce = (mAccelForce / diagonalAccelForce) * mAccelForce;
 
     // Calculate the drag exponent (drag exp = log[base: max vel](accel force))

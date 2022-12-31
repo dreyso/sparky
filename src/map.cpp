@@ -36,7 +36,7 @@ tileType Tile::getType() const { return mType; }
 // Get the collision box
 const SDL_Rect* Tile::getCollisionBox() const { return &mCollisionBox; }
 
-Map::Map(SDL_Renderer* defaultRenderer) : mTileTextures{defaultRenderer, "assets/images/tilemap.png"}
+Map::Map(SDL_Renderer* defaultRenderer) : mTileTextures{ defaultRenderer, "assets/images/tilemap.png" }
 {  
     // Open the map
     std::ifstream tileMapFile{ "assets/tilemap.map" };

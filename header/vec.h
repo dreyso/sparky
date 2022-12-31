@@ -48,6 +48,8 @@ public:
     Vec operator+(const Vec& vec) const;
     Vec operator-(const Vec& vec) const;
     bool operator==(const Vec& vec) const;
+    bool operator!=(const Vec& vec) const;
+
 
     // Scalar operations
     Vec& operator*=(float scalar);
@@ -64,9 +66,22 @@ public:
     void normalize();
     float getMagnitude() const;
     
-    // Returns the type of intersection (if any) between 2 offset vectors
-    // And, if it is a point, returns a vector to it
-    // Does not work if 𝙖 or 𝒃 are 0 vectors
+    /**
+    * Description:
+    * Given 2 vectors, 𝙖 and 𝒃, and their offsets, A and B, finds the type of intersection 𝙖 and 𝒃 have (if any),
+    * and for point intersections, returns the coordinates of the point. For all other cases, the vector returned is
+    * a zero vector.
+    *
+    * Pre-conditions:
+    * Throws exception if 𝙖 or 𝒃 are zero vectors.
+    *
+    * Input:
+    * Four vectors, 𝙖 and its offset A, 𝒃 and its offset B.
+    *
+    * Output:
+    * A std::pair with the first element notating the type of intersection, and
+    * the second element mapping its location (for point intersections only).
+    */
     static std::pair<Solution, Vec> findIntersection(const Vec& A, const Vec& 𝙖, const Vec& B, const Vec& 𝒃);
 
 private:

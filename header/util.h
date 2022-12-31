@@ -43,3 +43,87 @@ struct IdGen {
         return reinterpret_cast<typeID>(typeid(IdGen<Arguments...>).name());
     }
 };
+
+// A wrapper class that gives circular behvior to vectors
+// The List class being passed in must have size_t size() and operator[] methods
+template <class List>
+class CircularList
+{
+public:
+    CircularList(List& someList) : mList{ someList } {}
+
+    // Positive indices start from 0, negative start from the end
+    auto& operator[](int i)
+    {
+        i %= static_cast<int>(mList.size());
+        if (i < 0)
+            return mList[static_cast<int>(mList.size()) + i];
+
+        return mList[i];
+    }
+
+private:
+    List& mList;
+};
+
+// A wrapper class that gives circular behvior to vectors
+// The List class being passed in must have size_t size() and operator[] methods
+template <class List>
+class Circulator
+{
+public:
+    Circulator(List& someList, int index = 0) : mList{ someList }, mIndex{ index } 
+    {
+        correctIndex();
+    }
+
+    // Positive indices start from 0, negative start from the end
+    auto& operator++()
+    {
+        ++mIndex;
+        correctIndex();
+        return mList[mIndex];
+    }
+    
+    auto& operator--()
+    {
+        --mIndex;
+        correctIndex();
+        return mList[mIndex];
+    }
+    
+    auto& operator*()
+    {
+        return mList[mIndex];
+    }
+    
+    bool operator==(const Circulator& other) const
+    {
+        if (mIndex == other.mIndex)
+            return true;
+        
+        return false;
+    }
+    
+    bool operator!=(const Circulator& other) const
+    {
+        if (mIndex != other.mIndex)
+            return true;
+
+        return false;
+    }
+private:
+    void correctIndex()
+    {
+        if (mIndex < 0)
+        {
+            mIndex %= static_cast<int>(mList.size());
+            mIndex += static_cast<int>(mList.size());
+        }
+        else if (mIndex >= static_cast<int>(mList.size()))
+            mIndex %= static_cast<int>(mList.size());
+    }
+
+    List& mList;
+    int mIndex;
+};

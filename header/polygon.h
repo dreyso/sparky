@@ -2,7 +2,10 @@
 #include "vec.h"
 
 #include <vector>
+#include <string>
 
+
+class ConvexPolygon;
 
 // Polygon must be not self intersect, and cannot have collinear edges
 // Vertices must be in clockwise order
@@ -18,13 +21,43 @@ public:
 
 	void moveBy(Vec addToPos);
 	void moveTo(Vec pos);
-	void rotateBy(float addToAngle);
-	void rotateTo(float angle);
+	void rotateBy(float degrees);
+	void rotateTo(float degrees);
+	void offsetVerticesBy(float distance);
 
 	const Vec& getPos() const;
 	const std::vector<Vec>& getVertices() const;
 	std::vector<ConvexPolygon> triangulate() const;
 
+	// Used by ctor to check if vertices are in clockwise winding order
+	static bool isClockwise(const std::vector<Vec>& vertices);
+
+	// Used by ctor to check for self intersections
+	static bool isSelfIntersecting(const std::vector<Vec>& vertices);
+
+	// Returns a list of the edges of the polygon as clockwise vectors (offsets come first)
+	static std::vector<std::pair<Vec, Vec>> getEdges(const std::vector<Vec>& vertices);
+
+	// Used by ctor to check for collinear edges
+	static std::vector<Vec>::size_type findCollinearEdge(const std::vector<Vec>& vertices);
+
+	/**
+	* Description:
+	* Loads all polygons from an SVG file, polygons being stored as (points="...").
+	*
+	* Pre-conditions:
+	* The polygons must have at least 3 vertices and have no collinear or self intersecting edges. If a polygons doesn't
+	* satisfy a requirement, the polyon constructor will throw an std::exception.
+	* Note that quadrilaterals with a collinear edge (5 vertices) will have the culprit removed and
+	* be allowed through as the same shape, minus a vertex.
+	*
+	* Input:
+	* A path to an SVG file.
+	*
+	* Output:
+	* A vector of polygons.
+	*/
+	static std::vector<Polygon> read_SVG_polygons(const std::ifstream& svgFile);
 protected:
 	// Called by convex polygon ctor to avoid unnecessary checks
 	// Integer is for function overloading
@@ -32,21 +65,10 @@ protected:
 	Polygon(std::vector<Vec>&& vertices, int);
 
 private:
-	// Used by ctor to check if vertices are in clockwise winding order
-	bool isClockwise() const;
-
-	// Used by ctor to check for self intersections
-	bool isSelfIntersecting() const;
-
-	// Returns a list of the edges of the polygon as clockwise vectors (offsets come first)
-	std::vector<std::pair<Vec, Vec>> getEdges() const;
-
-	// Used by ctor to check for collinear edges
-	bool hasCollinearEdges() const;
 	
 	void initPos();
+	void rotateVerticesBy(float degrees);
 	void updateAbsoluteVertices();
-	void updateRotation();
 
 	Vec mPos;                                   // Centroid
 	std::vector<Vec> mRelativeVertices;         // Only change during rotations
@@ -78,3 +100,4 @@ private:
 	// Returns a list of the edges of the polygon as clockwise vectors
 	std::vector<Vec> getCollisionAxi() const;
 };
+

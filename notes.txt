@@ -127,3 +127,33 @@ struct hash_unordered_pair_fn
 //    // Every instantiation of the template has its own copy
 //    static void dummy() {};
 // };
+
+//std::regex rgx("points=\"(.+?)\"");
+//std::regex rgx{ "points=(\")([ .[:digit:]]+)\\1" };
+//std::regex rgx{ "points=(\")([ .\\d]+)\\1" };
+//std::regex rgx{ "points=\"([ .\\d]+)\"" };
+// Capture anything other than a ".
+//std::regex rgx("points=\"([^\"]*)\"");
+
+// -- Read in the rectangles -----------------------------------------
+   
+    {
+        //SVG format: x="225.64" y="78.64" width="70.71" height="70.71"
+        std::regex rectRegex("x=\"([^\"]*)\" y=\"([^\"]*)\" width=\"([^\"]*)\" height=\"([^\"]*)\"");
+
+        std::sregex_iterator current(svgString.begin(), svgString.end(), rectRegex);
+        std::sregex_iterator end;
+
+        while (current != end)
+        {
+            float x = std::stof(current->str(1));
+            float y = std::stof(current->str(2));
+            float w = std::stof(current->str(3));
+            float h = std::stof(current->str(4));
+
+            std::vector<Vec> vertices{ Vec{x, y}, Vec{x, y + h}, Vec{x + w, y + h}, Vec{x + w, y} };
+
+            // Add the rectangle to the list
+            polygons.push_back(vertices);
+        }
+    }

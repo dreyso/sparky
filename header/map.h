@@ -72,6 +72,7 @@ protected:
 private:
     // Tile texture spritesheet
     Texture mTileTextures;
+
     SDL_Rect mTileSprites[3];
 
     bool loadSprites();

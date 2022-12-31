@@ -4,6 +4,7 @@
 #include <utility>
 #include <stdexcept>
 
+const float EQUIVALENCE_THRESHOLD = 0.01f;
 
 std::array<float, 2>& Matrix::operator[](int row)
 {
@@ -62,16 +63,23 @@ float Vec::operator*(const Vec& vec) const    // Dot product
 
 float Vec::cross(const Vec& vec2) const       // 2d cross product (determinant)
 {
+	// Second vector, 𝙫1, must be to the left of 𝙫0 for positive area
 	return mX * vec2.mY - mY * vec2.mX;
 }
 
 float Vec::scalarProjectOn(const Vec& target) const
 {
+	if(target.isZeroVector())
+		throw(std::runtime_error{ "Error: Cannot project on the zero vector\n" });
+
 	return (*this * target) / target.getMagnitude();
 }
 
 Vec Vec::projectOn(const Vec& target) const
 {
+	if (target.isZeroVector())
+		throw(std::runtime_error{ "Error: Cannot project on the zero vector\n" });
+
 	return (*this * target) / powf(target.getMagnitude(), 2.f) * target;
 }
 
@@ -105,7 +113,12 @@ Vec Vec::operator-(const Vec& vec) const
 
 bool Vec::operator==(const Vec& vec) const
 {
-	return mX == vec.mX && mY == vec.mY;
+	return (fabs(mX - vec.mX) < EQUIVALENCE_THRESHOLD && fabs(mY - vec.mY) < EQUIVALENCE_THRESHOLD);
+}
+
+bool Vec::operator!=(const Vec& vec) const
+{
+	return !(*this == vec);
 }
 
 // Scalar operations
@@ -172,6 +185,9 @@ std::pair<Solution, Vec> Vec::findIntersection(const Vec& A, const Vec& 𝙖, co
 {
 	// Method credit: https:// stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect/565282#565282
 
+	if(𝙖.isZeroVector() || 𝒃.isZeroVector())
+		throw(std::invalid_argument{ "Error: Cannot test if zero vectors intersect\n" });
+
 	// Frequently used values
 	Vec BminusA = B - A;	// B - A
 	float BminusACross𝒃 = BminusA.cross(𝒃);	// B - A × 𝒃
@@ -200,7 +216,7 @@ std::pair<Solution, Vec> Vec::findIntersection(const Vec& A, const Vec& 𝙖, co
 			else
 				return std::pair{ Solution::NO_SOLUTION, Vec{} };           // Collinear and disjoint
 		}
-		else if (proj0 <= 1.f && proj1 >= 0.f)	// Check if [proj0, proj1] intersects interval[0, 1]
+		else if (proj0 <= 1.f && proj1 >= 0.f)	// Check if [proj0, proj1] intersects interval [0, 1]
 			return std::pair{ Solution::COLLINEAR_SOLUTION, Vec{} };    // Collinear and overlapping
 		else
 			return std::pair{ Solution::NO_SOLUTION, Vec{} };           // Collinear and disjoint

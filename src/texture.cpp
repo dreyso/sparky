@@ -5,6 +5,8 @@
 #include <SDL_ttf.h>
 
 #include <string>
+#include <stdexcept>
+
 
 
 Texture::Texture(SDL_Renderer* defaultRenderer, std::string pathOrText, TTF_Font* defaultFont, SDL_Color* textColor)
@@ -121,14 +123,38 @@ bool Texture::setTransparency(Uint8 alpha)
 // Draws texture at given point
 bool Texture::draw(int x, int y, const SDL_Rect* crop, double angle, SDL_Point* center, SDL_RendererFlip flip)
 {
-	// Set rendering area
+	// Set drawing area
 	SDL_Rect renderArea{ x, y, mWidth, mHeight };
 
-	// If cropping texture, change render area dimensions to the crop's
+	// If cropping texture, set the render area's dimensions to the crop's
 	if (crop != nullptr)
 	{
-		renderArea.w = crop->w;
-		renderArea.h = crop->h;
+		// -- Tailor the crop -----------------------------------------
+		
+		/**
+		* SDL crops textures without any extra space. I.e, if a
+		* crop includes an entire texture and some space around it,
+		* it will only grab the texture, no extra space. This will
+		* then be rendered to some space, and if the space has different
+		* dimensions from the cropped texture, the image will be distorted.
+		* Hence, the crop should be "tailored" and the rendering area shifted
+		* to simulate including the space in the crop.
+		*/
+
+		SDL_Rect textureDimensions{ 0, 0, mWidth, mHeight };
+		SDL_Rect tailoredCrop{ 0, 0, 0, 0 };
+
+		if (!SDL_IntersectRect(&textureDimensions, crop, &tailoredCrop))
+			throw(std::invalid_argument{ "Error: Cropped area does not intersect with texture to be drawn\n" });
+		
+		renderArea.w = tailoredCrop.w;
+		renderArea.h = tailoredCrop.h;
+		
+		// Shift render area to include space in the crop area
+		if (crop->x < 0)
+			renderArea.x -= crop->x;
+		if (crop->y < 0)
+			renderArea.y -= crop->y;
 	}
 
 	// Draw texture
