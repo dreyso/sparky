@@ -2,6 +2,8 @@
 #include "vec.h"
 
 #include <vector>
+#include <fstream>
+
 
 
 class ConvexPolygon;
