@@ -10,172 +10,98 @@
 #include <new>
 #include <vector>
 #include <string>
-
-#define MAX_COLLISIONS 3
-#define MAX_NEIGHBOURS 8
+#include <stdexcept>
 
 
 using namespace MapInternals;
 
-void Tile::setTile(int x, int y, int tileSideLength, tileType type)
+void Region::setRegion(int x, int y, int regionSideLength)
 {
-    // Set tile position
-    mCollisionBox.x = x;
-    mCollisionBox.y = y;
+    // Set the length of the region's sides
+    mRegionSideLength = regionSideLength;
 
-    // Set tile dimsensions
-    mCollisionBox.w = tileSideLength;
-    mCollisionBox.h = tileSideLength;
-
-    // Set the type
-    mType = type;
-}
-
-tileType Tile::getType() const { return mType; }
-
-// Get the collision box
-const SDL_Rect* Tile::getCollisionBox() const { return &mCollisionBox; }
-
-Map::Map(SDL_Renderer* defaultRenderer) : mTileTextures{ defaultRenderer, "assets/images/tilemap.png" }
-{  
-    // Open the map
-    std::ifstream tileMapFile{ "assets/tilemap.map" };
-
-    // If the map couldn't be loaded
-    if (tileMapFile.is_open() == false)
+    // Determine the region's vertices
+    std::vector<Vec> collisionBoxVertices
     {
-        fprintf(stderr, "Unable to load map file!\n");
-        exit(-1);
-    }
-
-    // Read in and store tilemap dimensions
-    loadMapVariables(tileMapFile);
-
-    // Create appropriately sized grid
-    mTiles.assign(MAP_HEIGHT_IN_TILES, std::vector<Tile>(MAP_WIDTH_IN_TILES));
-
-    // Set the tiles
-    for (int iRow = 0; iRow < MAP_HEIGHT_IN_TILES; ++iRow)
-    {
-        for (int iCol = 0; iCol < MAP_WIDTH_IN_TILES; ++iCol)
-        {
-            int readInTileType = -1;
-
-            // Read tile type from file
-            tileMapFile >> readInTileType;
-
-            // Check if read-in was successfull
-            if (tileMapFile.good() == false)
-            {
-                fprintf(stderr, "Failed to load map: read-in unsuccesful\n");
-                exit(-1);
-            }
-
-            // Invalid tile type
-            if (readInTileType <= -1 && readInTileType >= TOTAL_TILE_TYPES)
-            {
-                fprintf(stderr, "Failed to load map: invalid tile type\n");
-                exit(-1);
-            }
-            mTiles[iRow][iCol].setTile(iCol * TILE_SIDE_LENGTH, iRow * TILE_SIDE_LENGTH, TILE_SIDE_LENGTH, static_cast<tileType>(readInTileType));
-        }
-    }
-    // Close file
-    tileMapFile.close();
-    
-    loadSprites();
-}
-
-bool Map::loadMapVariables(std::ifstream& tileMapFile)
-{
-    // Get tilemap dimensions
-    int tileScale = 0;
-    int mapWidthInTiles = 0;
-    int mapHeightInTiles = 0;
-
-    // Quick way to check every read-in
-    auto check = [&tileMapFile]() 
-    {
-        if (tileMapFile.good() == false)
-        {
-            fprintf(stderr, "Failed to load map: read-in unsuccesful\n");
-            return false;
-        }
-        return true;
+        Vec{ static_cast<float>(x), static_cast<float>(y) },
+        Vec{ static_cast<float>(x), static_cast<float>(y + regionSideLength) },
+        Vec{ static_cast<float>(x + regionSideLength), static_cast<float>(y + regionSideLength) },
+        Vec{ static_cast<float>(x + regionSideLength), static_cast<float>(y) }
     };
 
-    tileMapFile.ignore(LONG_MAX, ' ');    // skip everything up to and including space
-    tileMapFile >> tileScale;
-    if (check() == false)                 // Check if read-in was successful
-        return false;
-    tileMapFile.ignore(1, '\n');          // Move on to next line
-
-    tileMapFile.ignore(LONG_MAX, ' ');
-    tileMapFile >> mapWidthInTiles;
-    if (check() == false)   
-        return false;
-    tileMapFile.ignore(1, '\n');
-
-    tileMapFile.ignore(LONG_MAX, ' ');
-    tileMapFile >> mapHeightInTiles;
-    if (check() == false)
-        return false;
-    tileMapFile.ignore(1, '\n');
-
-    // Set variables
-    TILE_SIDE_LENGTH = tileScale;
-    MAP_WIDTH_IN_TILES = mapWidthInTiles;
-    MAP_HEIGHT_IN_TILES = mapHeightInTiles;
-    TOTAL_TILES = mapWidthInTiles * mapHeightInTiles;
-    MAP_WIDTH = static_cast<float>(mapWidthInTiles * tileScale);
-    MAP_HEIGHT = static_cast<float>(mapHeightInTiles * tileScale);
-
-    return true;
+    mCollisionBox = std::move(collisionBoxVertices);
 }
 
-bool Map::loadSprites()
+void Region::setCollisionTriangles(const std::vector<const ConvexPolygon*>& triangles)
 {
-    // Create the sprite sheet
-    mTileSprites[MISC_TILE].x = 0;
-    mTileSprites[MISC_TILE].y = 0;
-    mTileSprites[MISC_TILE].w = TILE_SIDE_LENGTH;
-    mTileSprites[MISC_TILE].h = TILE_SIDE_LENGTH;
-
-    mTileSprites[FLOOR_TILE].x = 100;
-    mTileSprites[FLOOR_TILE].y = 0;
-    mTileSprites[FLOOR_TILE].w = TILE_SIDE_LENGTH;
-    mTileSprites[FLOOR_TILE].h = TILE_SIDE_LENGTH;
-
-    mTileSprites[WALL_TILE].x = 200;
-    mTileSprites[WALL_TILE].y = 0;
-    mTileSprites[WALL_TILE].w = TILE_SIDE_LENGTH;
-    mTileSprites[WALL_TILE].h = TILE_SIDE_LENGTH;
-
-    return true;
+    // Set the collidable triangles in this region
+    mCollisionTriangles = triangles;
 }
 
-
-std::vector<SDL_Rect> Map::mergeTiles(const std::vector<const SDL_Rect*>& collidedTiles) const
+void Region::setCollisionTriangles(std::vector<const ConvexPolygon*>&& triangles)
 {
-    std::vector<SDL_Rect> mergedCollisions;
+    // Set the collidable triangles in this region
+    mCollisionTriangles = triangles;
+}
 
-    // Two adjacent tiles or empty corner case
-    if (collidedTiles.size() == 2)
+// Get the collision box
+const ConvexPolygon& Region::getCollisionBox() const
+{
+    return mCollisionBox;
+}
+
+Map::Map(SDL_Renderer* defaultRenderer, const char* pathToSVG) : mMapTexture{ defaultRenderer, pathToSVG }
+{  
+    // -- Read and triangulate polygons -----------------------------------------
+
+    // Read the polygons in the svg file
+    mMapPolygons = Polygon::read_SVG_polygons(pathToSVG);
+
+    // Get each polygon's triangles, reserve the minimum amount first
+    mMapTriangles.reserve(mMapPolygons.size());
+    for (int i = 0; i < mMapPolygons.size(); ++i)
     {
-        // Adjacent on the y axis (row)
-        if (collidedTiles[0]->y == collidedTiles[1]->y)
-            mergedCollisions.push_back(SDL_Rect{ collidedTiles[0]->x, collidedTiles[0]->y, 2 * collidedTiles[0]->w, collidedTiles[0]->h });
-        
-        // Adjacent on the x axis (column)
-        else if (collidedTiles[0]->x == collidedTiles[1]->x)
-            mergedCollisions.push_back(SDL_Rect{ collidedTiles[0]->x, collidedTiles[0]->y, collidedTiles[0]->w, 2 * collidedTiles[0]->h });
+        auto triangles = mMapPolygons[i].triangulate();
+        mMapTriangles.insert(mMapTriangles.end(), triangles.begin(), triangles.end());
     }
-    if (mergedCollisions.size() == 0)
+   
+    // -- Set map dimension variables -----------------------------------------
+
+    MAP_WIDTH = mMapTexture.getWidth();
+    MAP_HEIGHT = mMapTexture.getHeight();
+    REGION_SIDE_LENGTH = 100;
+
+    // Check that the dimensions of the map and regions are compatible
+    if(MAP_WIDTH % REGION_SIDE_LENGTH != 0 || MAP_HEIGHT % REGION_SIDE_LENGTH != 0)
+        throw(std::invalid_argument{ "Error: Map is not divisible into regions\n" });
+
+    MAP_WIDTH_IN_REGIONS = MAP_WIDTH / REGION_SIDE_LENGTH;
+    MAP_HEIGHT_IN_REGIONS = MAP_HEIGHT / REGION_SIDE_LENGTH;
+    TOTAL_REGIONS = MAP_WIDTH_IN_REGIONS * MAP_HEIGHT_IN_REGIONS;
+   
+
+    // -- Create collision map -----------------------------------------
+
+    mRegions.assign(MAP_HEIGHT_IN_REGIONS, std::vector<Region>(MAP_WIDTH_IN_REGIONS));
+
+    // Set the regions
+    for (int iRow = 0; iRow < MAP_HEIGHT_IN_REGIONS; ++iRow)
     {
-        for (auto& collidedTile : collidedTiles)
-            mergedCollisions.push_back(*collidedTile);
+        for (int iCol = 0; iCol < MAP_WIDTH_IN_REGIONS; ++iCol)
+        {
+            mRegions[iRow][iCol].setRegion(iCol * REGION_SIDE_LENGTH, iRow * REGION_SIDE_LENGTH, REGION_SIDE_LENGTH);
+            std::vector<const ConvexPolygon*> collidedTriangles;
+            
+            // Find all triangles that lie in this region
+            for (auto& triangle : mMapTriangles)
+            {
+                if (!ConvexPolygon::resolveCollision(mRegions[iRow][iCol].getCollisionBox(), triangle).isZeroVector())
+                    collidedTriangles.push_back(&(mRegions[iRow][iCol].getCollisionBox()));
+                
+            }
+            mRegions[iRow][iCol].setCollisionTriangles(collidedTriangles);
+        }
     }
-    return mergedCollisions;
 }
 
 // Check wall collisions

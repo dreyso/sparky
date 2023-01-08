@@ -2,6 +2,8 @@
 #include "vec.h"
 
 #include <vector>
+#include <fstream>
+
 
 
 class ConvexPolygon;
@@ -9,44 +11,138 @@ class ConvexPolygon;
 class Polygon
 {
 public:
-	Polygon() = delete;
 
-	// Provide absolute or relative (to origin) vertices
-	Polygon(std::vector<Vec>& vertices);
-	Polygon(std::vector<Vec>&& vertices);
+	Polygon(std::vector<Vec> vertices);
+
+	void swap(Polygon& other) noexcept;
+
+	Polygon(const Polygon& other);
+	Polygon(Polygon&& other) noexcept;
+
+	Polygon& operator=(std::vector<Vec> vertices);
+	Polygon& operator=(Polygon other);
+
 	~Polygon() = default;
 
-	void moveBy(Vec addToPos);
-	void moveTo(Vec pos);
+	void moveBy(const Vec& addToPos);
+	void moveTo(const Vec& pos);
+
+	/**
+	* Description:
+	* Rotates the polygon about its centroid by/to the specified amount (degrees).
+	*
+	* Input:
+	* A float representing the degrees to rotate by/to. The number must be in the
+	* interval [-360, 360], otherwise the methods will throw an std::invalid_argument
+	* exception.
+	*
+	* Output:
+	* The polygon will rotate accordingly.
+	*/
 	void rotateBy(float degrees);
 	void rotateTo(float degrees);
+	
+	/**
+	* Description:
+	* Moves every vertice by the specified distance. The offset spans the line that
+	* bisects the angle the vertex forms. As a result, the position of the polygon
+	* may change and some vertices may be deleted.
+	*
+	* Post-conditions:
+	* After the transformation, the polygon will be checked if it still satisfies
+	* the requirements of the class, otherwise the method will throw an std::invalid_argument
+	* exception.
+	* 
+	* Input:
+	* A float representing the offset distance.
+	*
+	* Output:
+	* The transformed polygon.
+	*/
 	void offsetVerticesBy(float distance);
 
 	const Vec& getPos() const;
 	const std::vector<Vec>& getVertices() const;
+
+	/**
+	* Description:
+	* Breaks the polygon up into triangles via the ear clipping method.
+	*
+	* Input:
+	* This polygon class.
+	*
+	* Output:
+	* A vector of triangles (as convex polygons).
+	*/
 	std::vector<ConvexPolygon> triangulate() const;
 
-	// Used by ctor to check if vertices are in clockwise winding order
+	/**
+	* Description:
+	* Determines the the winding order of the polygon's vertices
+	* based on the sign of the net area under the polygon's edges.
+	* Note that the polygon can be a line or even a single vertex.
+	*
+	* Input:
+	* A vector of vertices.
+	*
+	* Output:
+	* A boolean, true meaning the polygon is clockwise, and
+	* false meaning either a counterclockwise winding order or
+	* a self-intersecting polygon.
+	*/
 	static bool isClockwise(const std::vector<Vec>& vertices);
 
-	// Used by ctor to check for self intersections
+	/**
+	* Description:
+	* Uses vector math to check if any of the polygon's edges
+	* intersect each other.
+	*
+	* Input:
+	* A vector of vertices.
+	*
+	* Output:
+	* A boolean, true meaning the polygon self-intersects, and
+	* false meaning the converse.
+	*/
 	static bool isSelfIntersecting(const std::vector<Vec>& vertices);
 
-	// Returns a list of the edges of the polygon as clockwise vectors (offsets come first)
+	/**
+	* Description:
+	* Converts a set of vertices into edges, where an edge a pair
+	* of vectors. The first vector is the offset, and the second 
+	* is the edge itself.
+	*
+	* Input:
+	* A vector of vertices.
+	*
+	* Output:
+	* A vector of pairs.
+	*/
 	static std::vector<std::pair<Vec, Vec>> getEdges(const std::vector<Vec>& vertices);
 
-	// Used by ctor to check for collinear edges
-	static std::vector<Vec>::size_type findCollinearEdge(const std::vector<Vec>& vertices);
+	/**
+	* Description:
+	* Seachs through the vertices untill the first
+	* collinear vertex.
+	*
+	* Input:
+	* A vector of vertices.
+	*
+	* Output:
+	* A bool, true means the vertices contain a 
+	* collinear vertex, and false meaning the converse
+	*/
+	static bool removeCollinearEdges(std::vector<Vec>& vertices);
+
+	// Checks if the vertices have any collinear edges
+	static bool hasCollinearEdges(const std::vector<Vec>& vertices);
 
 	/**
 	* Description:
 	* Loads all polygons from an SVG file, polygons being stored as (points="...").
 	*
 	* Pre-conditions:
-	* The polygons must have at least 3 vertices and have no collinear or self intersecting edges. If a polygons doesn't
-	* satisfy a requirement, the polyon constructor will throw an std::exception.
-	* Note that quadrilaterals with a collinear edge (5 vertices) will have the culprit removed and
-	* be allowed through as the same shape, minus a vertex.
+	* The SVG polygons must satisfy the rules of the Polygon class, otherwise the constructor will throw an exception.
 	*
 	* Input:
 	* A path to an SVG file.
@@ -54,12 +150,12 @@ public:
 	* Output:
 	* A vector of polygons.
 	*/
-	static std::vector<Polygon> read_SVG_polygons(const std::ifstream& svgFile);
+	static std::vector<Polygon> read_SVG_polygons(const char* pathToSVG);
+
 protected:
-	// Called by convex polygon ctor to avoid unnecessary checks
-	// Integer is for function overloading
-	Polygon(std::vector<Vec>& vertices, int);
-	Polygon(std::vector<Vec>&& vertices, int);
+
+	// Used in the move constructor
+	Polygon() = default;
 
 private:
 	
@@ -77,24 +173,37 @@ private:
 class ConvexPolygon : public Polygon
 {
 public:
-	ConvexPolygon() = delete;
 
-	// Provide absolute or relative (to origin) vertices
-	ConvexPolygon(std::vector<Vec>& vertices);
-	ConvexPolygon(std::vector<Vec>&& vertices);
+	ConvexPolygon(std::vector<Vec> vertices);
+	ConvexPolygon(Polygon other);
+
+	void swap(ConvexPolygon& other) noexcept;
+	
+	ConvexPolygon(const ConvexPolygon& other);
+	ConvexPolygon(ConvexPolygon&& other) noexcept;
+
+	ConvexPolygon& operator=(ConvexPolygon other);
+	ConvexPolygon& operator=(std::vector<Vec> vertices);
+
 	~ConvexPolygon() = default;
 
-	// Return 0 if there is no collision
+	void offsetVerticesBy(float distance);
+
+	// Return 0 vector if there is no collision
 	static Vec resolveCollision(const ConvexPolygon& moveableShape, const ConvexPolygon& fixedShape);
 
 	// Returns minimuim vector to resolve all collisions
 	static Vec resolveCollisions(const ConvexPolygon& moveableShape, const std::vector<ConvexPolygon>& fixedShapes);
 
 private:
+
+	// Used in the move constructor
+	ConvexPolygon() = default;
+
 	// Used by ctor to check if the polygon is convex, also checks for collinear edges, self intersections, and a clockwise winding order
 	bool isConvex();
 
-	// Returns a list of the edges of the polygon as clockwise vectors
+	// Returns a list of the edges of the polygon rotated 90 degrees
 	std::vector<Vec> getCollisionAxi() const;
 };
 

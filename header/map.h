@@ -2,35 +2,37 @@
 #include "texture.h"
 #include "collision.h"
 #include "vec.h"
+#include "Polygon.h"
 
 #include <SDL.h>
 
 #include <memory>
 #include <vector>
+#include <fstream>
 
 
 namespace MapInternals
 {
-    enum tileType : int { MISC_TILE, FLOOR_TILE, WALL_TILE, TOTAL_TILE_TYPES };
-
-    class Tile
+    // A sqaure
+    class Region
     {
     public:
-        Tile() = default;
-        ~Tile() = default;
+        Region() = default;
+        ~Region() = default;
 
-        // Initialize position and type
-        void setTile(int x, int y, int tileSideLength, tileType type);
+        // Initialize position (upper-left corner) and size
+        void setRegion(int x, int y, int regionSideLength);
+        void setCollisionTriangles(const std::vector<const ConvexPolygon*>& triangles);
+        void setCollisionTriangles(std::vector<const ConvexPolygon*>&& triangles);
 
-        tileType getType() const;
-
-        const SDL_Rect* getCollisionBox() const;
-
-        // Tile dimensions and position
-        SDL_Rect mCollisionBox = {0, 0, 0, 0};
+        const ConvexPolygon& getCollisionBox() const;
 
     private:
-        tileType mType = MISC_TILE;
+        int mRegionSideLength = 0.f;
+        ConvexPolygon mCollisionBox{ std::vector<Vec>{Vec{0.f,0.f}, Vec{0.f,100.f}, Vec{100.f,100.f}, Vec{100.f,0.f} } };
+        
+        // Collidable triangles in this region
+        std::vector<const ConvexPolygon*> mCollisionTriangles;
     };
 }
 
@@ -38,44 +40,41 @@ class Map
 {
 public:
     Map() = delete;
-    // Can only be created inside Game::
-    Map(SDL_Renderer* defaultRenderer);
+    Map(SDL_Renderer* defaultRenderer, const char* pathToSVG);
     ~Map() = default;
 
-    // Check wall collisions
-    bool checkWallCollisions(const SDL_FRect& box, Vec& adjustPos);
+    // Get map collisions
+    bool getCollisions(const ConvexPolygon& entity, Vec& getPosAdjustment);
     
-    // Checks if a point is inside a wall
-    bool isInWall(const Vec& point);
+    // Checks if a point is inside a collidable map area
+    bool checkPointCollision(const Vec& point);
 
     // Render all of the tiles in the camera
-    void render(const SDL_FRect& pCamera);
+    void draw(const SDL_FRect& pCamera);
 
 protected:
-    // Initialized in class constructor
-    static inline int TILE_SIDE_LENGTH = 0;
-    static inline int TOTAL_TILES = 0;
-    static inline int MAP_WIDTH_IN_TILES = 0;
-    static inline int MAP_HEIGHT_IN_TILES = 0;
-    static inline float MAP_WIDTH = 0.f;
-    static inline float MAP_HEIGHT = 0.f;
+    // Utility map variables
+    static inline int REGION_SIDE_LENGTH = 100;
+    static inline int TOTAL_REGIONS = 0;
+    static inline int MAP_WIDTH_IN_REGIONS = 0;
+    static inline int MAP_HEIGHT_IN_REGIONS = 0;
+    static inline int MAP_WIDTH = 0.f;
+    static inline int MAP_HEIGHT = 0.f;
 
-    // Used to smoothen wall collisions, merges axis aligned tiles into a single collision box
-    std::vector<SDL_Rect> mergeTiles(const std::vector<const SDL_Rect*>& collidedTiles) const;
-
-    // Returns a tile that a point lies on
-    MapInternals::Tile* getTileFromWorldPoint(const Vec& point);
-
-    // Grid of all of the tiles
-    std::vector<std::vector<MapInternals::Tile>> mTiles;
+    // Returns a region that a point lies on
+    MapInternals::Region* getRegionFromWorldPoint(const Vec& point);
 
 private:
-    // Tile texture spritesheet
-    Texture mTileTextures;
-
-    SDL_Rect mTileSprites[3];
-
-    bool loadSprites();
-    bool loadMapVariables(std::ifstream& tileMapFile);
+    // SVG file loaded as an SDL texture
+    Texture mMapTexture;
+    
+    // A list of all of the polygons on the map
+    std::vector<Polygon> mMapPolygons;
+    
+    // A list of all of the triangles on the map
+    std::vector<ConvexPolygon> mMapTriangles;
+    
+    // A grid of the map, where each region stores the triangles that touch it
+    std::vector<std::vector<MapInternals::Region>> mRegions;
 };
 

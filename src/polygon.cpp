@@ -14,52 +14,53 @@
 #include <stdexcept>
 
 
-Polygon::Polygon(std::vector<Vec>&& vertices) : mAbsoluteVertices{ std::move(vertices) }
+Polygon::Polygon(std::vector<Vec> vertices) : mAbsoluteVertices{ std::move(vertices) }
 {
+    removeCollinearEdges(mAbsoluteVertices);    // Remove all collinear vertices from the polygon
+    
     if (mAbsoluteVertices.size() < 3)            // Polygon must contain atleast 3 vertices
         throw(std::invalid_argument{ "Error: Open polygon\n" });
     else if (isClockwise(mAbsoluteVertices) == false)             // Polygon vertices must be in clockwise order
        throw(std::invalid_argument{ "Error: Polygon vertices not in clockwise order\n" });
-    else if (findCollinearEdge(mAbsoluteVertices) != mAbsoluteVertices.size())        // Polygon cannot have collinear edges
-        throw(std::invalid_argument{ "Error: Polygon has collinear edges\n" });
     else if (isSelfIntersecting(mAbsoluteVertices) == true)       // Polygon must be not self intersect
         throw(std::invalid_argument{ "Error: Polygon self intersects\n" });
 
     initPos();  // Determine center of the polygon
 }
-
-Polygon::Polygon(std::vector<Vec>& vertices) : mAbsoluteVertices{ vertices }
+void Polygon::swap(Polygon& other) noexcept
 {
-    if (mAbsoluteVertices.size() < 3)            // Polygon must contain atleast 3 vertices
-        throw(std::invalid_argument{ "Error: Open polygon\n" });
-    else if (isClockwise(mAbsoluteVertices) == false)             // Polygon vertices must be in clockwise order
-       throw(std::invalid_argument{ "Error: Polygon vertices not in clockwise order\n" });
-    else if (findCollinearEdge(mAbsoluteVertices) != mAbsoluteVertices.size())        // Polygon cannot have collinear edges
-        throw(std::invalid_argument{ "Error: Polygon has collinear edges\n" });
-    else if (isSelfIntersecting(mAbsoluteVertices) == true)       // Polygon must be not self intersect
-        throw(std::invalid_argument{ "Error: Polygon self intersects\n" });
-
-    initPos();  // Determine center of the polygon
+    std::swap(mAbsoluteVertices, other.mAbsoluteVertices);
+    std::swap(mRelativeVertices, other.mRelativeVertices);
+    {
+        Vec temp{ mPos };
+        mPos = other.mPos;
+        other.mPos = temp;
+    }
+    {
+        float temp{ mRotAngle };
+        mRotAngle = other.mRotAngle;
+        other.mRotAngle = temp;
+    }
 }
 
-Polygon::Polygon(std::vector<Vec>& vertices, int) : mAbsoluteVertices{ vertices }
-{
-    if (mAbsoluteVertices.size() < 3)   // Polygon must contain atleast 3 vertices
-        throw(std::invalid_argument{ "Error: Open polygon\n" });
-    else if (isSelfIntersecting(mAbsoluteVertices) == true)       // Polygon must be not self intersect
-        throw(std::invalid_argument{ "Error: Polygon self intersects\n" });
+Polygon::Polygon(const Polygon& other) : mAbsoluteVertices{ other.mAbsoluteVertices }, mRelativeVertices{ other.mRelativeVertices }, mPos{ other.mPos }, mRotAngle{ other.mRotAngle }{}
 
-    initPos();  // Determine center of the polygon
+Polygon::Polygon(Polygon&& other) noexcept : Polygon()
+{
+    swap(other);
 }
 
-Polygon::Polygon(std::vector<Vec>&& vertices, int) : mAbsoluteVertices{ std::move(vertices) }
+Polygon& Polygon::operator=(Polygon other)
 {
-    if (mAbsoluteVertices.size() < 3)   // Polygon must contain atleast 3 vertices
-        throw(std::invalid_argument{ "Error: Open polygon\n" });
-    else if (isSelfIntersecting(mAbsoluteVertices) == true)       // Polygon must be not self intersect
-        throw(std::invalid_argument{ "Error: Polygon self intersects\n" });
+    swap(other);
+    return *this;
+}
 
-    initPos();  // Determine center of the polygon
+Polygon& Polygon::operator=(std::vector<Vec> vertices)
+{
+    Polygon temp{ std::move(vertices) };
+    swap(temp);
+    return *this;
 }
 
 bool Polygon::isClockwise(const std::vector<Vec>& vertices)
@@ -81,14 +82,20 @@ bool Polygon::isClockwise(const std::vector<Vec>& vertices)
     return area > 0;
 }
 
-std::vector<Vec>::size_type Polygon::findCollinearEdge(const std::vector<Vec>& vertices)
+bool Polygon::removeCollinearEdges(std::vector<Vec>& vertices)
 {
-    for (int i = 0; i < vertices.size(); ++i)
+    // Record if a collinear edge has been removed in the loop below
+    bool removedEdge = false;
+
+    for (int iMiddle = 0; iMiddle < vertices.size() && vertices.size() >= 3; ++iMiddle)
     {
         // Get every trio of vertices
-        Vec v0{ vertices[i] };
-        Vec v1{ vertices[(i + 1) % vertices.size()] };
-        Vec v2{ vertices[(i + 2) % vertices.size()] };
+        auto prev = Circulator{ vertices, iMiddle - 1 };
+        auto next = Circulator{ vertices, iMiddle + 1 };
+
+        Vec v0{ *prev };
+        Vec v1{ vertices[iMiddle] };
+        Vec v2{ *next };
 
         // Define 2 vectors from the first vertex to the other 2
         v1 -= v0;
@@ -96,9 +103,41 @@ std::vector<Vec>::size_type Polygon::findCollinearEdge(const std::vector<Vec>& v
 
         // If any of the cross products are 0, the edges are collinear
         if (v2.cross(v1) == 0.f)
-            return ((i + 1) % vertices.size());
+        {
+            // Delete the vertex
+            vertices.erase(vertices.begin() + iMiddle);
+            removedEdge = true;
+
+            // Avoid moving forward without checking again
+            --iMiddle;
+        }
     }
-    return vertices.size();
+    return removedEdge;
+}
+
+bool Polygon::hasCollinearEdges(const std::vector<Vec>& vertices)
+{
+    for (int iMiddle = 0; iMiddle < vertices.size() && vertices.size() >= 3; ++iMiddle)
+    {
+        // Get every trio of vertices
+        auto prev = Circulator{ vertices, iMiddle - 1 };
+        auto next = Circulator{ vertices, iMiddle + 1 };
+
+        Vec v0{ *prev };
+        Vec v1{ vertices[iMiddle] };
+        Vec v2{ *next };
+
+        // Define 2 vectors from the first vertex to the other 2
+        v1 -= v0;
+        v2 -= v0;
+
+        // If any of the cross products are 0, the edges are collinear
+        if (v2.cross(v1) == 0.f)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Not indlucding adjacent edges (vertex joints and possibly adjacent collinear edge overlap)
@@ -106,19 +145,17 @@ bool Polygon::isSelfIntersecting(const std::vector<Vec>& vertices)
 {
     auto edges = getEdges(vertices);
 
-    // Compare every edge to edge[0], except for edge[1] and edge[last]
-    for (int jEdge = 2; jEdge < edges.size() - 1; ++jEdge)
+    // Check for intersection between all edges
+    for (int iEdge = 0; iEdge < edges.size(); ++iEdge)
     {
-        if (Vec::findIntersection(edges[0].first, edges[0].second, edges[jEdge].first, edges[jEdge].second).first != Solution::NO_SOLUTION)
-            return true;
-    }
-
-    // Check for intersection between all remaining none adjacent edges
-    for (int iEdge = 1; iEdge < edges.size(); ++iEdge)
-    {
-        for (int jEdge = iEdge + 2; jEdge < edges.size(); ++jEdge)
+        for (int jEdge = iEdge + 1; jEdge < edges.size(); ++jEdge)
         {
-            if (Vec::findIntersection(edges[iEdge].first, edges[iEdge].second, edges[jEdge].first, edges[jEdge].second).first != Solution::NO_SOLUTION)
+            auto solution = Vec::findIntersection(edges[iEdge].first, edges[iEdge].second, edges[jEdge].first, edges[jEdge].second);
+            // Adjacent edges must have a point solution
+            if (jEdge - iEdge == 1 && std::get<Solution>(solution) != Solution::POINT_SOLUTION)
+                return true;
+            // All non-adjacent edges must have no solution
+            else if (std::get<Solution>(solution) != Solution::NO_SOLUTION)
                 return true;
         }
     }
@@ -262,12 +299,12 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
     return triangles;
 }
 
-void Polygon::moveBy(Vec addToPos)
+void Polygon::moveBy(const Vec& addToPos)
 {
     mPos += addToPos;
     updateAbsoluteVertices();
 }
-void Polygon::moveTo(Vec pos)
+void Polygon::moveTo(const Vec& pos)
 {
     mPos = pos;
     updateAbsoluteVertices();
@@ -275,7 +312,6 @@ void Polygon::moveTo(Vec pos)
 
 void Polygon::rotateTo(float degrees)
 {
-
     if(fabs(degrees) > 360.f)
         throw(std::invalid_argument{ "Error: Rotation angle must between [-360.f, 360.f]\n" });
 
@@ -332,14 +368,10 @@ void Polygon::offsetVerticesBy(float distance)
     // Update the absolute vertices to match the relative ones
     updateAbsoluteVertices();
 
-    // Ensure that the polygon is still valid
-    
-    if (isClockwise(mAbsoluteVertices) == false)                  // Polygon vertices must be in clockwise order
-        throw(std::invalid_argument{ "Error: Polygon vertices not in clockwise order\n" });
-    else if (findCollinearEdge(mAbsoluteVertices) != mAbsoluteVertices.size())        // Polygon cannot have collinear edges
-        throw(std::invalid_argument{ "Error: Polygon has collinear edges\n" });
-    else if (isSelfIntersecting(mAbsoluteVertices) == true)       // Polygon must be not self intersect
-        throw(std::invalid_argument{ "Error: Polygon self intersects\n" });
+    // -- Ensure that the polygon is still valid -----------------------------------------
+
+    Polygon temp{ std::move(mAbsoluteVertices) };
+    swap(temp);
 }
 
 void Polygon::updateAbsoluteVertices()
@@ -369,18 +401,47 @@ void Polygon::rotateVerticesBy(float degrees)
     updateAbsoluteVertices();
 }
 
-ConvexPolygon::ConvexPolygon(std::vector<Vec>& vertices) : Polygon{ vertices, 0 }
+ConvexPolygon::ConvexPolygon(std::vector<Vec> vertices) : Polygon{ std::move(vertices) }
 {
     if (isConvex() == false)       // Polygon must be convex
         throw(std::invalid_argument{ "Error: Concave polygon\n" });
 }
 
-ConvexPolygon::ConvexPolygon(std::vector<Vec>&& vertices) : Polygon{ std::move(vertices), 0 }
+ConvexPolygon::ConvexPolygon(Polygon other) : ConvexPolygon()
 {
-    if (isConvex() == false)       // Polygon must be convex
+    // Swap data at base class level, ConvexPolygon has no fields to swap
+    Polygon::swap(other);
+
+    // Ensure that the polygon is convex
+    if (isConvex() == false)       
         throw(std::invalid_argument{ "Error: Concave polygon\n" });
 }
 
+void ConvexPolygon::swap(ConvexPolygon& other) noexcept
+{
+    // Swap data at base class level, ConvexPolygon has no fields to swap
+    Polygon::swap(other);
+}
+
+ConvexPolygon::ConvexPolygon(const ConvexPolygon& other) : Polygon{ other }{}
+
+ConvexPolygon::ConvexPolygon(ConvexPolygon&& other) noexcept : ConvexPolygon()
+{
+    swap(other);
+}
+
+ConvexPolygon& ConvexPolygon::operator=(ConvexPolygon other)
+{
+    swap(other);
+    return *this;
+}
+
+ConvexPolygon& ConvexPolygon::operator=(std::vector<Vec> vertices)
+{
+    ConvexPolygon temp{ std::move(vertices) };
+    swap(temp);
+    return *this;
+}
 
 // Convex means that the next edge vector is to the right of the current one (negative cross product)
 // Note: If the te polygon ends up convex, it is gaureenteed to be clockwise and have no collinear edges.
@@ -405,6 +466,15 @@ bool ConvexPolygon::isConvex()
     }
    
     return true;
+}
+
+void ConvexPolygon::offsetVerticesBy(float distance)
+{
+    Polygon::offsetVerticesBy(distance);
+
+    // Ensure that the polygon remained convex
+    if (isConvex() == false)       
+        throw(std::invalid_argument{ "Error: Concave polygon\n" });
 }
 
 Vec ConvexPolygon::resolveCollisions(const ConvexPolygon& moveableShape, const std::vector<ConvexPolygon>& fixedShapes)
@@ -523,12 +593,14 @@ std::vector<Vec> ConvexPolygon::getCollisionAxi() const
 * read_SVG_polygons opens the provided file and copies all of its
 * contents into an std::string. The string is then parsed using regex,
 * the result is an iterator over all of the polygons' vertices. Each
-* list of vertices is checked (and corrected) for a clockwise order,
-* last vertex being a duplicate of the first, and a quadrilateral with a
-* single collinear vertex.
+* list of vertices is checked (and corrected) for a clockwise order and
+* the last vertex being a duplicate of the first.
 */
-std::vector<Polygon> Polygon::read_SVG_polygons(const std::ifstream& svgFile)
+std::vector<Polygon> Polygon::read_SVG_polygons(const char* pathToSVG)
 {
+    // Open the file
+    std::ifstream svgFile{ pathToSVG };
+
     // Check if the file opened
     if (svgFile.is_open() == false)
         throw(std::invalid_argument{ "Error: Unable to open SVG file\n" });
@@ -583,14 +655,6 @@ std::vector<Polygon> Polygon::read_SVG_polygons(const std::ifstream& svgFile)
         // Remove last vertex if it is a duplicate of the first (typical for SVG polygons)
         if(vertices[0] == vertices[vertices.size() - 1])
             vertices.pop_back();
-
-        // Remove extra vertex if there is one
-        if (vertices.size() == 5)
-        {
-            auto index = Polygon::findCollinearEdge(vertices);
-            if(index != vertices.size())
-                vertices.erase(vertices.begin() + index);
-        }
 
         // Add the polygon to the list
         polygons.push_back(vertices);

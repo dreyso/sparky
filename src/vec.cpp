@@ -2,6 +2,7 @@
 
 #include <array>
 #include <utility>
+#include <tuple>
 #include <stdexcept>
 
 const float EQUIVALENCE_THRESHOLD = 0.01f;
@@ -75,12 +76,18 @@ float Vec::scalarProjectOn(const Vec& target) const
 	return (*this * target) / target.getMagnitude();
 }
 
-Vec Vec::projectOn(const Vec& target) const
+// Get the shadow as a ratio of the target vector
+float Vec::ratioProjectOn(const Vec& target) const
 {
 	if (target.isZeroVector())
 		throw(std::runtime_error{ "Error: Cannot project on the zero vector\n" });
 
-	return (*this * target) / powf(target.getMagnitude(), 2.f) * target;
+	return (*this * target) / powf(target.getMagnitude(), 2.f);
+}
+
+Vec Vec::projectOn(const Vec& target) const
+{
+	return (Vec{ target }) * ratioProjectOn(target);
 }
 
 Vec& Vec::operator=(const Vec& vec)
@@ -181,65 +188,81 @@ float Vec::getMagnitude() const
 	return sqrtf(powf(mX, 2.f) + powf(mY, 2.f));
 }
 
-std::pair<Solution, Vec> Vec::findIntersection(const Vec& A, const Vec& 𝙖, const Vec& B, const Vec& 𝒃)
+std::tuple<Solution, Vec, Vec> Vec::findIntersection(const Vec& A, const Vec& a, const Vec& B, const Vec& b)
 {
 	// Method credit: https:// stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect/565282#565282
 
-	if(𝙖.isZeroVector() || 𝒃.isZeroVector())
+	if(a.isZeroVector() || b.isZeroVector())
 		throw(std::invalid_argument{ "Error: Cannot test if zero vectors intersect\n" });
 
 	// Frequently used values
 	Vec BminusA = B - A;	// B - A
-	float BminusACross𝒃 = BminusA.cross(𝒃);	// B - A × 𝒃
-	float BminusACross𝙖 = BminusA.cross(𝙖);	// B - A × 𝙖
-	float 𝙖Cross𝒃 = 𝙖.cross(𝒃);	// 𝙖 × 𝒃
+	float BminusACrossb = BminusA.cross(b);	// B - A × b
+	float BminusACrossa = BminusA.cross(a);	// B - A × a
+	float aCrossb = a.cross(b);	// a × b
 
-	// 𝙖 × 𝒃 = 0 means the 𝙖 and 𝒃 are parallel
-	// (B − A) × 𝙖 = 0 means the vector between the position vectors is collinear to 𝙖 (i.e., the starts of 𝙖 and 𝒃 can be drawn on one line)
+	// a × b = 0 means the a and b are parallel
+	// (B − A) × a = 0 means the vector between the position vectors is collinear to a (i.e., the starts of a and b can be drawn on one line)
 	
-	// If 𝙖 × 𝒃 = 0 and (B − A) × 𝙖 = 0, then the two vectors are collinear.
-	if (𝙖Cross𝒃 == 0.f && BminusACross𝙖 == 0.f)
+	// If a × b = 0 and (B − A) × a = 0, then the two vectors are collinear.
+	if (aCrossb == 0.f && BminusACrossa == 0.f)
 	{
-		// A, B, 𝙖, and 𝒃 are now all span the same line
-		// Project B - A ontu 𝙖, and B - A + 𝒃 ontu 𝙖
-	
-		// proj0 = Projection of (B - A) onto 𝙖
-		float proj0 = BminusA.scalarProjectOn(𝙖);
+		// A, B, a, and b are now all span the same line
+		// Arbitrarily, the direction of 'a' will be considered positive. Since all of the vectors
+		// are in the same space (a line), scalar projections are equal to the magnitude, but they
+		// also include direction.
 
-		// proj1 = Projection of (B - A + 𝒃) onto 𝙖
-		float proj1 = proj0 + 𝒃.scalarProjectOn(𝙖);
+		Vec positiveDirection{ a };
+		positiveDirection.normalize();
 
-		if ((𝒃 * 𝙖) < 0.f) // 𝒃 and 𝙖 point in opposite directions
-		{
-			if (proj1 <= 1.f && proj0 >= 0.f)	// Check if [proj1, proj0] intersects [0,1]
-				return std::pair{ Solution::COLLINEAR_SOLUTION, Vec{} };    // Collinear and overlapping
-			else
-				return std::pair{ Solution::NO_SOLUTION, Vec{} };           // Collinear and disjoint
-		}
-		else if (proj0 <= 1.f && proj1 >= 0.f)	// Check if [proj0, proj1] intersects interval [0, 1]
-			return std::pair{ Solution::COLLINEAR_SOLUTION, Vec{} };    // Collinear and overlapping
-		else
-			return std::pair{ Solution::NO_SOLUTION, Vec{} };           // Collinear and disjoint
+		// Interval a
+		float end1 = A.scalarProjectOn(positiveDirection);
+		float end2 = end1 + a.getMagnitude();	// Already positive
+
+		float aStart = std::min(end1, end2);
+		float aEnd = std::max(end1, end2);
+
+		// Interval b
+		end1 = B.scalarProjectOn(positiveDirection);
+		end2 = end1 + b.scalarProjectOn(positiveDirection);
+
+		float bStart = std::min(end1, end2);
+		float bEnd = std::max(end1, end2);
+
+		// Check if a and b overlap
+		if (bStart > aEnd || aStart > bEnd)
+			return { Solution::NO_SOLUTION, Vec{}, Vec{} };	// Collinear and disjoint
+
+		// Calculate the interval
+		float overlapStart = std::max(aStart, bStart);
+		float overlapEnd = std::min(aEnd, bEnd);
+
+		// Check if the overlap is a single point
+		if (overlapEnd - overlapStart == 0.f)	
+			return std::make_tuple(Solution::POINT_SOLUTION, Vec{ positiveDirection } *overlapStart, Vec{ 0.f,0.f });	// Point solution
+
+		//Collinear and overlapping
+		return std::make_tuple(Solution::COLLINEAR_SOLUTION, Vec{ positiveDirection } * overlapStart, Vec{ positiveDirection } * (overlapEnd - overlapStart));	// Interval solution
 	}
 
-	// If 𝙖 × 𝒃 = 0 and (B − A) × 𝙖 ≠ 0, then the vectors are parallel and don't intersect
-	else if (𝙖Cross𝒃 == 0.f && BminusACross𝙖 != 0.f)
-		return std::pair{ Solution::NO_SOLUTION, Vec{} };
+	// If a × b = 0 and (B − A) × a ≠ 0, then the vectors are parallel and don't intersect
+	else if (aCrossb == 0.f && BminusACrossa != 0.f)
+		return std::make_tuple(Solution::NO_SOLUTION, Vec{}, Vec{});
 	
 	// At this point, the lines are not parallel or collinear, so it should be possible to solve for α and β
 	
-	// A + α𝙖 = B + β𝒃
-	// α = (B - A) × 𝒃 / (𝙖 × 𝒃)
-	float α = (BminusACross𝒃) / 𝙖Cross𝒃;
+	// A + αa = B + βb
+	// α = (B - A) × b / (a × b)
+	float α = (BminusACrossb) / aCrossb;
 
-	// β = (B − A) × 𝙖 / (𝙖 × 𝒃)
-	float β = (BminusACross𝙖) / 𝙖Cross𝒃;
+	// β = (B − A) × a / (a × b)
+	float β = (BminusACrossa) / aCrossb;
 
 	// If α and β don't extend their respective vectors, then the vectors intersect
-	if (𝙖Cross𝒃 != 0.f && α >= 0.f && α <= 1.f && β >= 0.f && β <= 1.f)
-		return std::pair{ Solution::POINT_SOLUTION, A + (α * 𝙖) };
+	if (aCrossb != 0.f && α >= 0.f && α <= 1.f && β >= 0.f && β <= 1.f)
+		return std::make_tuple(Solution::POINT_SOLUTION, A + (α * a), Vec{});
 
 	// Otherwise, the vectors don't intersect because they're too short
 	else
-		return std::pair{ Solution::NO_SOLUTION, Vec{} };
+		return std::make_tuple(Solution::NO_SOLUTION, Vec{}, Vec{});
 }
