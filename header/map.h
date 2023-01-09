@@ -52,7 +52,7 @@ public:
     bool checkPointCollision(const Vec& point);
 
     // Render all of the tiles in the camera
-    void draw(const SDL_FRect& pCamera);
+    void draw(const SDL_FRect& camera);
 
 protected:
     // Utility map variables

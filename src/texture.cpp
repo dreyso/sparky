@@ -121,7 +121,7 @@ bool Texture::setTransparency(Uint8 alpha)
 }
 
 // Draws texture at given point
-bool Texture::draw(int x, int y, const SDL_Rect* crop, double angle, SDL_Point* center, SDL_RendererFlip flip)
+void Texture::draw(int x, int y, const SDL_Rect* crop, double angle, SDL_Point* center, SDL_RendererFlip flip)
 {
 	// Set drawing area
 	SDL_Rect renderArea{ x, y, mWidth, mHeight };
@@ -159,12 +159,7 @@ bool Texture::draw(int x, int y, const SDL_Rect* crop, double angle, SDL_Point* 
 
 	// Draw texture
 	if (SDL_RenderCopyEx(mDefaultRenderer, mTexture.get(), crop, &renderArea, angle, center, flip) != 0)
-	{
-		fprintf(stderr, "%s", SDL_GetError());
-		return false;
-	}
-
-	return true;
+		throw(std::runtime_error{ SDL_GetError() });
 }
 
 // Get texture width

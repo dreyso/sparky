@@ -157,42 +157,31 @@ MapInternals::Region& Map::getRegionFromWorldPoint(const Vec& point)
     return mRegions[row][col];
 }
 
-// Checks if a point is inside a wall
-bool Map::isInWall(const Vec& pos)
+// Checks if a point is inside a collidable map area
+bool Map::checkPointCollision(const Vec& point)
 {
-    Tile* tileUnderPoint = getTileFromWorldPoint(pos);
-    if (tileUnderPoint != nullptr && tileUnderPoint->getType() == WALL_TILE)
-        return true;
+    // Point must be within map bounds to collide
+    if (!isPointInWorldBounds(point))
+        return false;
+
+    // Get the region the point is in
+    auto& region = getRegionFromWorldPoint(point);
+
+    // Check if the point falls into any triangles in the region
+    for (auto& triangle : region.getCollisionTriangles())
+    {
+        // Return true if the point falls inside a collision triangle
+        if (triangle->containsPoint(point))
+            return true;
+    }
     return false;
 }
 
-void Map::render(const SDL_FRect& camera)
+void Map::draw(const SDL_FRect& camera)
 {
-    // Determine rendering bounds
-    int firstRow = static_cast<int>(camera.y) / TILE_SIDE_LENGTH;
-    if (firstRow < 0) firstRow = 0;
-   
-    int lastRow = (static_cast<int>(camera.y) + SCREEN_HEIGHT) / TILE_SIDE_LENGTH;
-    if (lastRow >= MAP_HEIGHT_IN_TILES) lastRow = MAP_HEIGHT_IN_TILES - 1;
+    // Determine which portion of the texture to draw
+    SDL_Rect crop{ static_cast<int>(roundf(camera.x)), static_cast<int>(roundf(camera.y)), static_cast<int>(roundf(camera.w)), static_cast<int>(roundf(camera.h)) };
     
-    int firstCol = static_cast<int>(camera.x) / TILE_SIDE_LENGTH;
-    if (firstCol < 0) firstCol = 0;
-
-    int lastCol = (static_cast<int>(camera.x) + SCREEN_WIDTH) / TILE_SIDE_LENGTH;
-    if (lastCol >= MAP_WIDTH_IN_TILES) lastCol = MAP_WIDTH_IN_TILES - 1;
-
-    // Render the level
-    // Note: <= is used to render the last visable row or col
-    for (int iRow = firstRow; iRow <= lastRow; ++iRow)
-    {
-        for (int iCol = firstCol; iCol <= lastCol; ++iCol)
-        {
-            Tile* tile = &mTiles[iRow][iCol];
-            const SDL_Rect* tileCollisionBox = tile->getCollisionBox();
-
-            int screenPosX = static_cast<int>(roundf(static_cast<float>(tileCollisionBox->x) - camera.x));
-            int screenPosY = static_cast<int>(roundf(static_cast<float>(tileCollisionBox->y) - camera.y));
-            mTileTextures.draw(screenPosX, screenPosY, &mTileSprites[tile->getType()]);
-        }
-    }
+    // Draw the map
+    mMapTexture.draw(0, 0, &crop);
 }

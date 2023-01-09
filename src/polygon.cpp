@@ -285,7 +285,7 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
         Vec 𝙫0{ *middle - *prev };
         Vec 𝙫1{ *next - *middle };
 
-        if (𝙫0.cross(𝙫1) > 0)   // Skip concave angles
+        if (𝙫0.cross(𝙫1) > 0.f)   // Skip concave angles
             continue;
 
         // Define 3rd triangle edge
@@ -302,7 +302,7 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
             Vec arr[3]{ {*current - *prev}, {*current - *middle}, {*current - *next} };
 
             // Cross each vector with its respective edge vector
-            found = (𝙫0.cross(arr[0]) > 0) && (𝙫1.cross(arr[1]) > 0) && (𝙫2.cross(arr[2]) > 0);
+            found = (𝙫0.cross(arr[0]) > 0.f) && (𝙫1.cross(arr[1]) > 0.f) && (𝙫2.cross(arr[2]) > 0.f);
                 
             ++current;
         }
@@ -541,6 +541,23 @@ ConvexPolygon ConvexPolygon::rectToPolygon(const Rect& rect)
     // Create and return the convex polygon
     return ConvexPolygon{std::move(collisionBoxVertices)};
 }
+
+bool ConvexPolygon::containsPoint(const Vec& point) const
+{
+    auto& vertices = this->getVertices();
+    auto edges = Polygon::getEdges(vertices);
+
+    for (int i = 0; i < vertices.size(); ++i)
+    {
+        // Cross each edge vector with a vector that points from the vertex to the query point
+        // if the cross product is not greater than 0, then the point is outside of the polygon
+        if (!(edges[i].second.cross(point - vertices[i]) > 0.f))
+            return false;
+    }
+    // All of the cross products were less than or equal to 0, so the point is inside the polygon
+    return true;
+}
+
 
 // Add only unique components of a solution vector
 void ConvexPolygon::mergeResolution(Vec& base, const Vec& toAdd)

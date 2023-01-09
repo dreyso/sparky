@@ -213,6 +213,9 @@ public:
 
 	static ConvexPolygon rectToPolygon(const Rect& rect);
 
+	bool containsPoint(const Vec& point) const;
+
+
 	// Add only unique components of a solution vector
 	static void mergeResolution(Vec& base, const Vec& toAdd);
 

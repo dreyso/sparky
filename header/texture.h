@@ -33,7 +33,7 @@ public:
 	bool setTransparency(Uint8 alpha);
 
 	// Renders texture at given point
-	bool draw(int x, int y, const SDL_Rect* clip = nullptr, double angle = 0.0, SDL_Point* center = nullptr, SDL_RendererFlip flip = SDL_FLIP_NONE);
+	void draw(int x, int y, const SDL_Rect* clip = nullptr, double angle = 0.0, SDL_Point* center = nullptr, SDL_RendererFlip flip = SDL_FLIP_NONE);
 
 	// Gets texture dimensions
 	int getWidth() const;
