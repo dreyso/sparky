@@ -3,6 +3,8 @@
 #include "../header/collision.h"
 #include "../header/screen_size.h"
 #include "../header/vec.h"
+#include "../header/polygon.h"
+
 
 #include <SDL.h>
 
@@ -20,16 +22,8 @@ void Region::setRegion(int x, int y, int regionSideLength)
     // Set the length of the region's sides
     mRegionSideLength = regionSideLength;
 
-    // Determine the region's vertices
-    std::vector<Vec> collisionBoxVertices
-    {
-        Vec{ static_cast<float>(x), static_cast<float>(y) },
-        Vec{ static_cast<float>(x), static_cast<float>(y + regionSideLength) },
-        Vec{ static_cast<float>(x + regionSideLength), static_cast<float>(y + regionSideLength) },
-        Vec{ static_cast<float>(x + regionSideLength), static_cast<float>(y) }
-    };
-
-    mCollisionBox = std::move(collisionBoxVertices);
+    // Set the region's collision box
+    mCollisionBox.set(static_cast<float>(x), static_cast<float>(y), static_cast<float>(x + regionSideLength), static_cast<float>(y + regionSideLength));
 }
 
 void Region::setCollisionTriangles(const std::vector<const ConvexPolygon*>& triangles)
@@ -41,13 +35,18 @@ void Region::setCollisionTriangles(const std::vector<const ConvexPolygon*>& tria
 void Region::setCollisionTriangles(std::vector<const ConvexPolygon*>&& triangles)
 {
     // Set the collidable triangles in this region
-    mCollisionTriangles = triangles;
+    mCollisionTriangles = std::move(triangles);
 }
 
 // Get the collision box
-const ConvexPolygon& Region::getCollisionBox() const
+const Rect& Region::getCollisionBox() const
 {
     return mCollisionBox;
+}
+
+const std::vector<const ConvexPolygon*>& Region::getCollisionTriangles() const
+{
+    return mCollisionTriangles;
 }
 
 Map::Map(SDL_Renderer* defaultRenderer, const char* pathToSVG) : mMapTexture{ defaultRenderer, pathToSVG }
@@ -78,7 +77,6 @@ Map::Map(SDL_Renderer* defaultRenderer, const char* pathToSVG) : mMapTexture{ de
     MAP_WIDTH_IN_REGIONS = MAP_WIDTH / REGION_SIDE_LENGTH;
     MAP_HEIGHT_IN_REGIONS = MAP_HEIGHT / REGION_SIDE_LENGTH;
     TOTAL_REGIONS = MAP_WIDTH_IN_REGIONS * MAP_HEIGHT_IN_REGIONS;
-   
 
     // -- Create collision map -----------------------------------------
 
@@ -95,86 +93,68 @@ Map::Map(SDL_Renderer* defaultRenderer, const char* pathToSVG) : mMapTexture{ de
             // Find all triangles that lie in this region
             for (auto& triangle : mMapTriangles)
             {
-                if (!ConvexPolygon::resolveCollision(mRegions[iRow][iCol].getCollisionBox(), triangle).isZeroVector())
-                    collidedTriangles.push_back(&(mRegions[iRow][iCol].getCollisionBox()));
-                
+                auto box = ConvexPolygon::rectToPolygon(mRegions[iRow][iCol].getCollisionBox());
+                if (!ConvexPolygon::resolveCollision(box, triangle).isZeroVector())
+                    collidedTriangles.push_back(&triangle);
             }
+            // Add all colliding triangles to the region
             mRegions[iRow][iCol].setCollisionTriangles(collidedTriangles);
         }
     }
 }
 
-// Check wall collisions
-bool Map::checkWallCollisions(const SDL_FRect& box, Vec& adjustPos)
+// Get map collisions
+Vec Map::resolveCollisions(const ConvexPolygon& entity)
 {
-    // Grab all unique tiles that the entity is on
-    // by checking if each corner of the hitbox is on a different tile
+    auto& entityAABB = entity.getAABB();
+    Vec solution;
 
-    std::vector<const SDL_Rect*> collidedTileBoxes;
-    Vec entityBoxCorner{0,0};
-    
-    // Use a lambda to verify and add a corner that lies on a wall tile not already added to the list
-    auto verifyAndAdd = [this, &collidedTileBoxes, &entityBoxCorner]()
-    { 
-        Tile* tempCollidedTile = getTileFromWorldPoint(entityBoxCorner);
-        const SDL_Rect* tempCollidedBox;
+    // Determine regions that inetrsect with the entity's AABB
+    int firstRow = static_cast<int>(entityAABB.y) / REGION_SIDE_LENGTH;
+    if (firstRow < 0) firstRow = 0;
 
-        // Proceed only if it's a wall tile
-        if (tempCollidedTile->getType() == WALL_TILE)
-            tempCollidedBox = tempCollidedTile->getCollisionBox();
-        else
-            return;
+    int lastRow = (static_cast<int>(entityAABB.y) + SCREEN_HEIGHT) / REGION_SIDE_LENGTH;
+    if (lastRow >= MAP_HEIGHT_IN_REGIONS) lastRow = MAP_HEIGHT_IN_REGIONS - 1;
 
-        // Check if this collision box is already present before adding it to the list
-        if (find(collidedTileBoxes.begin(), collidedTileBoxes.end(), tempCollidedBox) == collidedTileBoxes.end())
-            collidedTileBoxes.push_back(tempCollidedBox);
+    int firstCol = static_cast<int>(entityAABB.x) / REGION_SIDE_LENGTH;
+    if (firstCol < 0) firstCol = 0;
 
-        return; 
-    };
+    int lastCol = (static_cast<int>(entityAABB.x) + SCREEN_WIDTH) / REGION_SIDE_LENGTH;
+    if (lastCol >= MAP_WIDTH_IN_REGIONS) lastCol = MAP_WIDTH_IN_REGIONS - 1;
 
-    // Must be in row major order
-    // 1st corner
-    entityBoxCorner = Vec{box.x, box.y};
-    verifyAndAdd();
-
-    // 2nd corner
-    entityBoxCorner += Vec{ box.w, 0.f };
-    verifyAndAdd();
-
-    // 3nd corner
-    entityBoxCorner += Vec{ -box.w, box.h };
-    verifyAndAdd();
-
-    // 4th corner
-    entityBoxCorner += Vec{ box.w, 0 };
-    verifyAndAdd();
-
-    // If any corner is in a wall tile, resolve the collision
-    if (collidedTileBoxes.size() > 0)
+    // Iterate over every region touched by the entity's AABB
+    // Note: <= is used to render the last visable row or col
+    for (int iRow = firstRow; iRow <= lastRow; ++iRow)
     {
-        // If possible, merge the collided tiles to all for sliding against walls
-        buildCollisionReport(box, mergeTiles(collidedTileBoxes), adjustPos);
-        return true;
+        for (int iCol = firstCol; iCol <= lastCol; ++iCol)
+        {
+            auto& triangles = mRegions[iRow][iCol].getCollisionTriangles();
+            for (auto& triangle : triangles)
+            {
+                // Add current collision solution to the overall
+                ConvexPolygon::mergeResolution(solution, ConvexPolygon::resolveCollision(entity, *triangle));
+            }
+        }
     }
-    else
-        return false;
 }
 
-// Returns a tile that a passed in point lies on
-Tile* Map::getTileFromWorldPoint(const Vec& point)
+bool Map::isPointInWorldBounds(const Vec& point) const
+{
+    return (point.getX() < 0.f || point.getX() >= MAP_WIDTH || point.getY() < 0.f || point.getY() >= MAP_HEIGHT);
+}
+
+// Returns a region that a point lies on
+MapInternals::Region& Map::getRegionFromWorldPoint(const Vec& point)
 {
     // Check if point is inside map bounds
-    if (point.getX() < 0.f || point.getX() >= MAP_WIDTH || point.getY() < 0.f || point.getY() >= MAP_HEIGHT)
-    {
-        fprintf(stderr, "Point is outside the map bounds\n");
-        return nullptr;
-    }
+    if (isPointInWorldBounds(point))
+        throw(std::invalid_argument{ "Error: Point is outside of map bounds\n" });
 
     // Convert pixel coordinates to tile in 2d array
     // E.g, 0.5 tiles is on the 0th tile
-    int col = static_cast<int>(point.getX()) / TILE_SIDE_LENGTH;
-    int row = static_cast<int>(point.getY()) / TILE_SIDE_LENGTH;
-    return &mTiles[row][col];
+    int col = static_cast<int>(point.getX()) / REGION_SIDE_LENGTH;
+    int row = static_cast<int>(point.getY()) / REGION_SIDE_LENGTH;
+    return mRegions[row][col];
 }
 
 // Checks if a point is inside a wall

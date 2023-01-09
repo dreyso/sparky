@@ -14,6 +14,29 @@
 #include <stdexcept>
 
 
+void Rect::set(float x, float y, float width, float height)
+{
+    this->x = x;
+    this->y = y;
+    this->width = width;
+    this->height = height;
+}
+
+static bool isIntersecting(const Rect& a, const Rect& b)
+{
+    // Check if a and b overlap on the x axis
+    if (a.x > b.x + b.width || b.x > a.x + a.width)
+        return false;
+
+    // Check if a and b overlap on the y axis
+    else if (a.y > b.y + b.height || b.y > a.y + a.height)
+        return false;
+    
+    // The rectangles overlap on both axii, so they must intersect
+    else
+        return true;
+}
+
 Polygon::Polygon(std::vector<Vec> vertices) : mAbsoluteVertices{ std::move(vertices) }
 {
     removeCollinearEdges(mAbsoluteVertices);    // Remove all collinear vertices from the polygon
@@ -24,7 +47,8 @@ Polygon::Polygon(std::vector<Vec> vertices) : mAbsoluteVertices{ std::move(verti
        throw(std::invalid_argument{ "Error: Polygon vertices not in clockwise order\n" });
     else if (isSelfIntersecting(mAbsoluteVertices) == true)       // Polygon must be not self intersect
         throw(std::invalid_argument{ "Error: Polygon self intersects\n" });
-
+    
+    setBoundingBox();   //  Init the bounding box
     initPos();  // Determine center of the polygon
 }
 void Polygon::swap(Polygon& other) noexcept
@@ -41,6 +65,7 @@ void Polygon::swap(Polygon& other) noexcept
         mRotAngle = other.mRotAngle;
         other.mRotAngle = temp;
     }
+    std::swap(mAABB, other.mAABB);
 }
 
 Polygon::Polygon(const Polygon& other) : mAbsoluteVertices{ other.mAbsoluteVertices }, mRelativeVertices{ other.mRelativeVertices }, mPos{ other.mPos }, mRotAngle{ other.mRotAngle }{}
@@ -227,6 +252,11 @@ const std::vector<Vec>& Polygon::getVertices() const
     return mAbsoluteVertices;
 }
 
+const Rect& Polygon::getAABB() const
+{
+    return mAABB;
+}
+
 const Vec& Polygon::getPos() const
 {
     return mPos;
@@ -401,6 +431,26 @@ void Polygon::rotateVerticesBy(float degrees)
     updateAbsoluteVertices();
 }
 
+void Polygon::setBoundingBox()
+{
+    float smallestX, smallestY, largestX, largestY;
+    
+    for (auto& vertex : mAbsoluteVertices)
+    {
+        // Smallest x
+        smallestX = std::min(smallestX, vertex.getX());
+        // Smallest y
+        smallestY = std::min(smallestY, vertex.getY());
+        // Largest x
+        largestX = std::max(largestX, vertex.getX());
+        // Largest y
+        largestY = std::max(largestY, vertex.getY());
+    }
+
+    // Convert the extrema into the x,y,w,h of a rectangle
+    mAABB.set(smallestX, smallestY, largestX - smallestX, largestY - smallestY);
+}
+
 ConvexPolygon::ConvexPolygon(std::vector<Vec> vertices) : Polygon{ std::move(vertices) }
 {
     if (isConvex() == false)       // Polygon must be convex
@@ -477,31 +527,65 @@ void ConvexPolygon::offsetVerticesBy(float distance)
         throw(std::invalid_argument{ "Error: Concave polygon\n" });
 }
 
+ConvexPolygon ConvexPolygon::rectToPolygon(const Rect& rect)
+{
+    // Determine the region's vertices
+    std::vector<Vec> collisionBoxVertices
+    {
+        Vec{ static_cast<float>(rect.x), static_cast<float>(rect.y) },
+        Vec{ static_cast<float>(rect.x), static_cast<float>(rect.y + rect.height) },
+        Vec{ static_cast<float>(rect.x + rect.width), static_cast<float>(rect.y + rect.height) },
+        Vec{ static_cast<float>(rect.x + rect.width), static_cast<float>(rect.y) }
+    };
+
+    // Create and return the convex polygon
+    return ConvexPolygon{std::move(collisionBoxVertices)};
+}
+
+// Add only unique components of a solution vector
+void ConvexPolygon::mergeResolution(Vec& base, const Vec& toAdd)
+{
+    // Ignore trivial solutions
+    if (toAdd.isZeroVector())    
+        return;
+    
+    // If needed, initialize the base vector to a non-zero vector
+    if (base.isZeroVector())   
+    {
+        base = toAdd;
+        return;
+    }
+
+    // If the vector is in the perpendicular or in the opposite direction, just sum it
+    if (toAdd * base <= 0)    
+    {
+        base += toAdd;
+        return;
+    }
+    
+    // -- Add the vector's extra direction/magnitude to the base vector -----------------------------------------
+
+    // Get the common direction between the toAdd and the base, as a ratio of the base
+    float duplicate = toAdd.ratioProjectOn(base);  
+
+    // Cap the duplicate ratio to its own length
+    duplicate = std::min(duplicate, 1.f);        
+
+    // Subtract the duplicate vector from the toAdd vector, and add it to the base
+    base += toAdd - (duplicate * base);            
+}
+
 Vec ConvexPolygon::resolveCollisions(const ConvexPolygon& moveableShape, const std::vector<ConvexPolygon>& fixedShapes)
 {
-    Vec totalSolution{ 0.f,0.f };
+    Vec totalSolution{ 0.f, 0.f };
 
-    for (auto iFixedShape : fixedShapes)
+    for (auto& iFixedShape : fixedShapes)
     {
         // Get every collision solution between the moveable and fixed shapes
         Vec solution{ resolveCollision(moveableShape, iFixedShape) };
         
-        if (solution.isZeroVector())    // ignore trivial solutions
-            continue;
-        else if (totalSolution.isZeroVector())   // Initialize the overall solution variable to a non-zero vector
-            totalSolution = solution;
-        else if (solution * totalSolution <= 0)     // If the vector is in the perpendicular or in the opposite direction, just sum it
-        {
-            totalSolution += solution;
-            continue;
-        }
-        else   // This this iteration's solution to the total, but only extra direction/magnitude
-        {
-            float duplicate = solution.scalarProjectOn(totalSolution);  // Get the common direction between the current solution and the total
-            duplicate /= totalSolution.getMagnitude();                  // Make duplicate a ratio of the solution
-            duplicate = std::min(duplicate, 1.f);                       // Cap the duplicate ratio to its own length
-            totalSolution += solution - (duplicate * totalSolution);    // Subtract the duplicate vector from the current solution, and add it to the total
-        }
+        // Add the current solution to the total
+        mergeResolution(totalSolution, solution);
     }
     return totalSolution;
 }

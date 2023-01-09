@@ -2,9 +2,25 @@
 #include "vec.h"
 
 #include <vector>
-#include <fstream>
+#include <memory>
 
 
+class Rect
+{
+public:
+
+	Rect() = default;
+	Rect(float x, float y, float width, float height) : x{ x }, y{ y }, width{ width }, height{ height }{}
+	~Rect() = default;
+
+	void set(float x, float y, float width, float height);
+	static bool isIntersecting(const Rect& a, const Rect& b);
+
+	float x = 0.f;
+	float y = 0.f;
+	float width = 0.f;
+	float height = 0.f;
+};
 
 class ConvexPolygon;
 
@@ -62,6 +78,9 @@ public:
 	void offsetVerticesBy(float distance);
 
 	const Vec& getPos() const;
+	
+	const Rect& getAABB() const;
+
 	const std::vector<Vec>& getVertices() const;
 
 	/**
@@ -162,12 +181,15 @@ private:
 	void initPos();
 	void rotateVerticesBy(float degrees);
 	void updateAbsoluteVertices();
+	void setBoundingBox();
 
 	Vec mPos;                                   // Centroid
 	std::vector<Vec> mRelativeVertices;         // Only change during rotations
 	std::vector<Vec> mAbsoluteVertices;         // Change during rotations and translations
 
 	float mRotAngle = 0.f;
+
+	Rect mAABB;
 };
 
 class ConvexPolygon : public Polygon
@@ -188,6 +210,11 @@ public:
 	~ConvexPolygon() = default;
 
 	void offsetVerticesBy(float distance);
+
+	static ConvexPolygon rectToPolygon(const Rect& rect);
+
+	// Add only unique components of a solution vector
+	static void mergeResolution(Vec& base, const Vec& toAdd);
 
 	// Return 0 vector if there is no collision
 	static Vec resolveCollision(const ConvexPolygon& moveableShape, const ConvexPolygon& fixedShape);

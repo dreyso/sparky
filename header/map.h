@@ -25,11 +25,13 @@ namespace MapInternals
         void setCollisionTriangles(const std::vector<const ConvexPolygon*>& triangles);
         void setCollisionTriangles(std::vector<const ConvexPolygon*>&& triangles);
 
-        const ConvexPolygon& getCollisionBox() const;
+        const Rect& getCollisionBox() const;
+        const std::vector<const ConvexPolygon*>& getCollisionTriangles() const;
+
 
     private:
         int mRegionSideLength = 0.f;
-        ConvexPolygon mCollisionBox{ std::vector<Vec>{Vec{0.f,0.f}, Vec{0.f,100.f}, Vec{100.f,100.f}, Vec{100.f,0.f} } };
+        Rect mCollisionBox;
         
         // Collidable triangles in this region
         std::vector<const ConvexPolygon*> mCollisionTriangles;
@@ -44,7 +46,7 @@ public:
     ~Map() = default;
 
     // Get map collisions
-    bool getCollisions(const ConvexPolygon& entity, Vec& getPosAdjustment);
+    Vec resolveCollisions(const ConvexPolygon& entity);
     
     // Checks if a point is inside a collidable map area
     bool checkPointCollision(const Vec& point);
@@ -61,8 +63,11 @@ protected:
     static inline int MAP_WIDTH = 0.f;
     static inline int MAP_HEIGHT = 0.f;
 
+    // Checks if a point in inside map bounds
+    bool isPointInWorldBounds(const Vec& point) const;
+
     // Returns a region that a point lies on
-    MapInternals::Region* getRegionFromWorldPoint(const Vec& point);
+    MapInternals::Region& getRegionFromWorldPoint(const Vec& point);
 
 private:
     // SVG file loaded as an SDL texture
