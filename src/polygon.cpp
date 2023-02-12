@@ -13,23 +13,48 @@
 #include <sstream>
 #include <stdexcept>
 
+void Rect::swap(Rect& other)
+{
+    Rect temp{ other };
+    other = *this;
+    *this = temp;
+}
 
 void Rect::set(float x, float y, float width, float height)
 {
     this->x = x;
     this->y = y;
-    this->width = width;
-    this->height = height;
+    this->w = width;
+    this->h = height;
 }
 
-static bool isIntersecting(const Rect& a, const Rect& b)
+void Rect::set(const Vec& pos, float width, float height)
+{
+    this->x = pos.getX();
+    this->y = pos.getY();
+    this->w = width;
+    this->h = height;
+}
+
+void Rect::setPos(const Vec& pos)
+{
+    this->x = pos.getX();
+    this->y = pos.getY();
+}
+
+Vec Rect::getPos() const
+{
+    return Vec{ x,y };
+}
+
+bool Rect::isIntersecting(const Rect& a, const Rect& b)
 {
     // Check if a and b overlap on the x axis
-    if (a.x > b.x + b.width || b.x > a.x + a.width)
+    if (a.x > b.x + b.w || b.x > a.x + a.w)
         return false;
 
     // Check if a and b overlap on the y axis
-    else if (a.y > b.y + b.height || b.y > a.y + a.height)
+    else if (a.y > b.y + b.h || b.y > a.y + a.h)
         return false;
     
     // The rectangles overlap on both axii, so they must intersect
@@ -37,35 +62,45 @@ static bool isIntersecting(const Rect& a, const Rect& b)
         return true;
 }
 
+// Finds the smallest rectangle that fits the 2 passed in rectangles
+Rect Rect::combine(const Rect& a, const Rect& b)
+{
+    Rect combined;
+
+    // Find smallest x
+    combined.x = std::min(a.x, b.x);
+
+    // Find largest x
+    combined.w = std::max(a.x + a.w, b.x + b.w);
+
+    // Find smallest y
+    combined.x = std::min(a.y, b.y);
+
+    // Find largest y
+    combined.h = std::max(a.x + a.h, b.x + b.h);
+
+    return combined;
+}
+
 Polygon::Polygon(std::vector<Vec> vertices) : mAbsoluteVertices{ std::move(vertices) }
 {
-    removeCollinearEdges(mAbsoluteVertices);    // Remove all collinear vertices from the polygon
-    
-    if (mAbsoluteVertices.size() < 3)            // Polygon must contain atleast 3 vertices
-        throw(std::invalid_argument{ "Error: Open polygon\n" });
-    else if (isClockwise(mAbsoluteVertices) == false)             // Polygon vertices must be in clockwise order
-       throw(std::invalid_argument{ "Error: Polygon vertices not in clockwise order\n" });
-    else if (isSelfIntersecting(mAbsoluteVertices) == true)       // Polygon must be not self intersect
-        throw(std::invalid_argument{ "Error: Polygon self intersects\n" });
-    
-    setBoundingBox();   //  Init the bounding box
+    integrityCheck();
     initPos();  // Determine center of the polygon
+    setAABB();   //  Init the bounding box
 }
+
 void Polygon::swap(Polygon& other) noexcept
 {
     std::swap(mAbsoluteVertices, other.mAbsoluteVertices);
     std::swap(mRelativeVertices, other.mRelativeVertices);
-    {
-        Vec temp{ mPos };
-        mPos = other.mPos;
-        other.mPos = temp;
-    }
+    mPos.swap(other.mPos);
     {
         float temp{ mRotAngle };
         mRotAngle = other.mRotAngle;
         other.mRotAngle = temp;
     }
-    std::swap(mAABB, other.mAABB);
+    mAABB.swap(other.mAABB);
+    mAABB_Offset.swap(other.mAABB_Offset);
 }
 
 Polygon::Polygon(const Polygon& other) : mAbsoluteVertices{ other.mAbsoluteVertices }, mRelativeVertices{ other.mRelativeVertices }, mPos{ other.mPos }, mRotAngle{ other.mRotAngle }{}
@@ -203,6 +238,18 @@ std::vector<std::pair<Vec, Vec>> Polygon::getEdges(const std::vector<Vec>& verti
     return edges;
 }
 
+void Polygon::integrityCheck()
+{
+    removeCollinearEdges(mAbsoluteVertices);    // Remove all collinear vertices from the polygon
+
+    if (mAbsoluteVertices.size() < 3)            // Polygon must contain atleast 3 vertices
+        throw(std::invalid_argument{ "Error: Open polygon\n" });
+    else if (isClockwise(mAbsoluteVertices) == false)             // Polygon vertices must be in clockwise order
+        throw(std::invalid_argument{ "Error: Polygon vertices not in clockwise order\n" });
+    else if (isSelfIntersecting(mAbsoluteVertices) == true)       // Polygon must be not self intersect
+        throw(std::invalid_argument{ "Error: Polygon self intersects\n" });
+}
+
 // Bourke, Paul (July 1997). "Polygons and meshes"
 // https:// stackoverflow.com/questions/2792443/finding-the-centroid-of-a-polygon
 // https:// math.stackexchange.com/questions/90463/how-can-i-calculate-the-centroid-of-polygon
@@ -257,9 +304,37 @@ const Rect& Polygon::getAABB() const
     return mAABB;
 }
 
+Rect Polygon::getRectHull() const
+{
+    float smallestX, smallestY, largestX, largestY;
+    smallestX = smallestY = std::numeric_limits<float>::infinity();
+    largestX = largestY = -std::numeric_limits<float>::infinity();
+
+    for (auto& vertex : mAbsoluteVertices)
+    {
+        // Smallest x
+        smallestX = std::min(smallestX, vertex.getX());
+        // Smallest y
+        smallestY = std::min(smallestY, vertex.getY());
+        // Largest x
+        largestX = std::max(largestX, vertex.getX());
+        // Largest y
+        largestY = std::max(largestY, vertex.getY());
+    }
+
+    // Convert the extrema into the x,y,w,h of a rectangle
+    return Rect{ smallestX, smallestY, largestX - smallestX, largestY - smallestY };
+}
+
+
 const Vec& Polygon::getPos() const
 {
     return mPos;
+}
+
+float Polygon::getRotAngle() const
+{
+    return mRotAngle;
 }
 
 std::vector<ConvexPolygon> Polygon::triangulate() const
@@ -333,11 +408,14 @@ void Polygon::moveBy(const Vec& addToPos)
 {
     mPos += addToPos;
     updateAbsoluteVertices();
+    updateAABB();
 }
 void Polygon::moveTo(const Vec& pos)
 {
     mPos = pos;
     updateAbsoluteVertices();
+    updateAABB();
+
 }
 
 void Polygon::rotateTo(float degrees)
@@ -369,14 +447,18 @@ void Polygon::rotateBy(float degrees)
         mRotAngle += 360.f;
 }
 
-void Polygon::offsetVerticesBy(float distance)
+Polygon Polygon::offsetVerticesBy(float distance) const
 {
-    for (int iMiddle = 0; iMiddle < mAbsoluteVertices.size(); ++iMiddle)
+    Polygon transformedPolygon{ *this };
+    auto& absoluteVertices = transformedPolygon.mAbsoluteVertices;
+    auto& relativeVertices = transformedPolygon.mRelativeVertices;
+
+    for (int iMiddle = 0; iMiddle < absoluteVertices.size(); ++iMiddle)
     {
         // Try every consecutive pair of edges
-        auto prev = Circulator{ mAbsoluteVertices, iMiddle - 1 };
-        auto middle = Circulator{ mAbsoluteVertices, iMiddle };
-        auto next = Circulator{ mAbsoluteVertices, iMiddle + 1 };
+        auto prev = Circulator{ absoluteVertices, iMiddle - 1 };
+        auto middle = Circulator{ absoluteVertices, iMiddle };
+        auto next = Circulator{ absoluteVertices, iMiddle + 1 };
 
         Vec edge1{ *middle - *prev };
         Vec edge2{ *next - *middle };
@@ -392,25 +474,24 @@ void Polygon::offsetVerticesBy(float distance)
         direction *= Matrix{0.f, -1.f, 1.f, 0.f};
 
         // Using the calculated direction and provided distance, offset the relative vertex
-        mRelativeVertices[iMiddle] += direction * distance;
+        relativeVertices[iMiddle] += direction * distance;
     }
 
     // Update the absolute vertices to match the relative ones
-    updateAbsoluteVertices();
+    transformedPolygon.updateAbsoluteVertices();
 
-    // -- Ensure that the polygon is still valid -----------------------------------------
+    // Check polygon integrity and set bounding box, position shouldn't change
+    transformedPolygon.integrityCheck();
+    transformedPolygon.setAABB();
 
-    Polygon temp{ std::move(mAbsoluteVertices) };
-    swap(temp);
+    return transformedPolygon;
 }
 
 void Polygon::updateAbsoluteVertices()
 {
     // Absolute vetices are the sum of the polygon's position and its corresponding relative vertices
     for (int i = 0; i < mRelativeVertices.size(); ++i)
-    {
         mAbsoluteVertices[i] = mPos + mRelativeVertices[i];
-    }
 }
 
 void Polygon::rotateVerticesBy(float degrees)
@@ -423,32 +504,35 @@ void Polygon::rotateVerticesBy(float degrees)
 
     // Multiply each relative vertex by the matrix
     for (auto& relativeVertex : mRelativeVertices)
-    {
         relativeVertex *= rotMatrix;
-    }
     
     // Update the absolute vertices to match the relative ones
     updateAbsoluteVertices();
 }
 
-void Polygon::setBoundingBox()
+void Polygon::setAABB()
 {
-    float smallestX, smallestY, largestX, largestY;
+    // Find the longest relative vertex (distance from centroid)
+    Vec radius{ 0.f, 0.f };
     
-    for (auto& vertex : mAbsoluteVertices)
+    for (auto& vertex : mRelativeVertices)
     {
-        // Smallest x
-        smallestX = std::min(smallestX, vertex.getX());
-        // Smallest y
-        smallestY = std::min(smallestY, vertex.getY());
-        // Largest x
-        largestX = std::max(largestX, vertex.getX());
-        // Largest y
-        largestY = std::max(largestY, vertex.getY());
+        if (radius < vertex)
+            radius = vertex;
     }
 
-    // Convert the extrema into the x,y,w,h of a rectangle
-    mAABB.set(smallestX, smallestY, largestX - smallestX, largestY - smallestY);
+    float radiusMag = radius.getMagnitude();
+
+    // Remember the position of the AABB relative to the position of the polygon
+    mAABB_Offset = Vec{ mPos.getX() - radiusMag, mPos.getY() - radiusMag };
+
+    // Create the AABB, centered on the centroid
+    mAABB.set(mPos + mAABB_Offset, 2.f * radiusMag, 2.f * radiusMag);
+}
+
+void Polygon::updateAABB()
+{
+    mAABB.setPos(mPos + mAABB_Offset);
 }
 
 ConvexPolygon::ConvexPolygon(std::vector<Vec> vertices) : Polygon{ std::move(vertices) }
@@ -533,9 +617,9 @@ ConvexPolygon ConvexPolygon::rectToPolygon(const Rect& rect)
     std::vector<Vec> collisionBoxVertices
     {
         Vec{ static_cast<float>(rect.x), static_cast<float>(rect.y) },
-        Vec{ static_cast<float>(rect.x), static_cast<float>(rect.y + rect.height) },
-        Vec{ static_cast<float>(rect.x + rect.width), static_cast<float>(rect.y + rect.height) },
-        Vec{ static_cast<float>(rect.x + rect.width), static_cast<float>(rect.y) }
+        Vec{ static_cast<float>(rect.x), static_cast<float>(rect.y + rect.h) },
+        Vec{ static_cast<float>(rect.x + rect.w), static_cast<float>(rect.y + rect.h) },
+        Vec{ static_cast<float>(rect.x + rect.w), static_cast<float>(rect.y) }
     };
 
     // Create and return the convex polygon
@@ -758,8 +842,68 @@ std::vector<Polygon> Polygon::read_SVG_polygons(const char* pathToSVG)
             vertices.pop_back();
 
         // Add the polygon to the list
-        polygons.push_back(vertices);
+        polygons.emplace_back(std::move(vertices));
     }
 
     return polygons;
+}
+
+Polygon Polygon::read_SVG_polygon(const char* pathToSVG)
+{
+    // Open the file
+    std::ifstream svgFile{ pathToSVG };
+
+    // Check if the file opened
+    if (svgFile.is_open() == false)
+        throw(std::invalid_argument{ "Error: Unable to open SVG file\n" });
+
+    // Read file into a string buffer
+    std::stringstream buffer;
+    buffer << svgFile.rdbuf();
+
+    // Move stream into string
+    std::string svgString{ std::move(buffer).str() };
+
+    // -- Read in the polygon -----------------------------------------
+
+    // Start at points=" and end at "
+    std::regex polygonRegex("points=\"([^\"]*)\"");
+
+    // Find the lists of vertices in the string
+    std::smatch match;
+    if (!std::regex_search(svgString, match, polygonRegex))
+        throw(std::invalid_argument{ "Error: No polygon in SVG file\n" });
+
+    std::vector<Vec> vertices;
+    std::stringstream floats{ match[1] };   // 1 means 1st capture group, '([^\"]*)'.
+
+    // Read in each float, alternating between x and y
+    while (floats.good())
+    {
+        float tempX, tempY;
+
+        // Read in the x value
+        floats >> tempX;
+
+        // Check after reading in the x value
+        if (!floats.good())
+            throw(std::invalid_argument{ "Error: Missing y-value in vertex\n" });
+
+        // read in the y value
+        floats >> tempY;
+
+        // Add the vertex to the list
+        vertices.emplace_back(tempX, tempY);
+    }
+
+    // Make vertices clockwise
+    if (!Polygon::isClockwise(vertices))
+        std::reverse(vertices.begin(), vertices.end());
+
+    // Remove last vertex if it is a duplicate of the first (typical for SVG polygons)
+    if (vertices[0] == vertices[vertices.size() - 1])
+        vertices.pop_back();
+
+    // Add the polygon to the list
+    return Polygon{ std::move(vertices) };
 }

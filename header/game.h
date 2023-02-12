@@ -1,6 +1,8 @@
 #pragma once
 #include "../header/timer.h"
-#include "../header/pathfinder.h"
+#include "../header/map_texture.h"
+#include "../header/collision_map.h"
+#include "../header/search_graph.h"
 #include "../header/util.h"      // unique pointer
 #include "../header/entity.h"
 
@@ -65,8 +67,15 @@ private:
     // Used to time frames
     Timer mTimer;
 
+    // Holds the game map texture
+    MapTexture mMapTexture;
+
     // Holds the game map
-    Pathfinder mMap;
+    CollisionMap mCollisionMap;
+
+    // Holds the pathfinding data
+    SearchGraph mSearchGraph;
+
 
     Entity player;
     Entity bob;

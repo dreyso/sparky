@@ -1,8 +1,9 @@
 #include "../header/game.h"
 #include "../header/screen_size.h"
 #include "../header/timer.h"
-#include "../header/collision.h"
-#include "../header/pathfinder.h"
+#include "../header/map_texture.h"
+#include "../header/collision_map.h"
+#include "../header/search_graph.h"
 
 // Temporary, should be handled by an entity manager class
 #include "../header/components/component.h"
@@ -122,8 +123,11 @@ void GameLoader::close()
 	IMG_Quit();
 	SDL_Quit();
 }
+//SearchGraph(const CollisionMap& collisionMap, const std::vector<Vec>& points, int SVG_Width, int SVG_Height);
 
-Game::Game() : GameLoader{}, mMap{ mRenderer.get() }
+Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/test.svg" }, 
+mCollisionMap{ "assets/images/test.svg", mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }, 
+mSearchGraph{ mCollisionMap, mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }
 {
 	if (loadAssets() == false)
 		exit(-1);
@@ -131,27 +135,29 @@ Game::Game() : GameLoader{}, mMap{ mRenderer.get() }
 	// Initialize the timer for first frame
 	mTimer.start();
 
+	ConvexPolygon entityPolygon{Polygon::read_SVG_polygon("assets/images/triangle.svg")};
+
 	// Temp testing
-	player.addComponent<MechanicalComponent>(SDL_FRect{ 2200.f, 1500.f, 30.f, 30.f });
-	// player.addComponent<BehaviorComponent>(&mMap, &player, 3500.f, 500.f, 7000.f);
+	player.addComponent<MechanicalComponent>(entityPolygon);
+	// player.addComponent<BehaviorComponent>(&mCollisionMap, &player, 3500.f, 500.f, 7000.f);
 	player.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
 	player.addComponent<CameraComponent>(mWindow.get());
 	//sob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
-	player.addComponent<SharedTextureComponent<int>>(&player.getComponent<CameraComponent>().getCamera(), mRenderer.get(), "assets/images/triangle.png");
-	player.addComponent<MapCollisionComponent>(&mMap);
+	player.addComponent<SharedTextureComponent<int>>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.svg");
+	player.addComponent<MapCollisionComponent>(mCollisionMap);
 
 
-	sob.addComponent<MechanicalComponent>(SDL_FRect{ 2200.f, 1700.f, 30.f, 30.f });
-	sob.addComponent<BehaviorComponent>(&mMap, &player, 3500.f, 500.f, 7000.f);
-	// sob.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
-	// sob.addComponent<CameraComponent>(mWindow.get());
-	// sob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
-	sob.addComponent<SharedTextureComponent<int>>(&player.getComponent<CameraComponent>().getCamera());
+	//sob.addComponent<MechanicalComponent>(entityPolygon);
+	//sob.addComponent<BehaviorComponent>(&mCollisionMap, &mSearchGraph, &player, 3500.f, 500.f, 7000.f);
+	//// sob.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
+	//// sob.addComponent<CameraComponent>(mWindow.get());
+	//// sob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
+	//sob.addComponent<SharedTextureComponent<int>>(&player.getComponent<CameraComponent>().getCamera());
 
-	bob.addComponent<MechanicalComponent>(SDL_FRect{ 100.f, 100.f, 30.f, 30.f });
-	bob.addComponent<BehaviorComponent>(&mMap, &sob, 3500.f, 500.f, 7000.f);
-	bob.addComponent<SharedTextureComponent<int>>(&player.getComponent<CameraComponent>().getCamera());
-	//bob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
+	//bob.addComponent<MechanicalComponent>(entityPolygon);
+	//bob.addComponent<BehaviorComponent>(&mCollisionMap, &mSearchGraph, &sob, 3500.f, 500.f, 7000.f);
+	//bob.addComponent<SharedTextureComponent<int>>(&player.getComponent<CameraComponent>().getCamera());
+	////bob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
 }
 
 Game::~Game()
@@ -287,7 +293,7 @@ void Game::render()
 	SDL_RenderClear(mRenderer.get());
 
 	// Render the player
-	mMap.render(player.getComponent<CameraComponent>().getCamera());
+	mMapTexture.draw(player.getComponent<CameraComponent>().getCamera());
 
 	// Temp
 	player.draw();

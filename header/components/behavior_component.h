@@ -1,6 +1,7 @@
 #pragma once
 #include "component.h"
-#include "../Pathfinder.h"
+#include "../search_graph.h"
+#include "../collision_map.h"
 #include "../entity.h"
 #include "../vec.h"
 
@@ -12,8 +13,8 @@ class BehaviorComponent : public Component
 {
 	public:
 	BehaviorComponent() = delete;
-	BehaviorComponent(Entity* owner, Pathfinder* pathfinder, const Entity* target, float accelForce, float maxVel, float dragCap);
-	BehaviorComponent(Entity* owner, Pathfinder* pathfinder, const Entity* target, float accelForce, float maxVel, float dragCap, const Vec& accel);
+	BehaviorComponent(Entity* owner, CollisionMap* map, SearchGraph* pathfinder, const Entity* target, float accelForce, float maxVel, float dragCap);
+	BehaviorComponent(Entity* owner, CollisionMap* map, SearchGraph* pathfinder, const Entity* target, float accelForce, float maxVel, float dragCap, const Vec& accel);
 	virtual ~BehaviorComponent();
 
 	void update1(float deltaTime) override;
@@ -24,7 +25,9 @@ class BehaviorComponent : public Component
 
 private:
 	// Non-owning pointers
-	static inline Pathfinder* mPathfinder = nullptr;
+	static inline CollisionMap* mCollisionMap = nullptr;
+	static inline SearchGraph* mPathfinder = nullptr;
+
 	const Entity* mTarget;
 
 	float mAccelForce;      // The force the entity applies to accelerate
@@ -39,7 +42,7 @@ private:
 	
 	float mElapsedTime = 0.f;
 
-	std::stack<SDL_Point> mPath;
+	std::stack<Vec> mPath;
 
 	// Keep track of how many objects exist
 	static inline int mObjCount = 0;

@@ -15,19 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\collision.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\map.cpp">
+    <ClCompile Include="src\collision_map.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\pathfinder.cpp">
+    <ClCompile Include="src\search_graph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game.cpp">
@@ -60,12 +57,12 @@
     <ClCompile Include="src\polygon.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\map_texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="header\collision.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="header\map.h">
+    <ClInclude Include="header\collision_map.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="header\screen_size.h">
@@ -77,7 +74,7 @@
     <ClInclude Include="header\timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="header\pathfinder.h">
+    <ClInclude Include="header\search_graph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="header\game.h">
@@ -116,8 +113,17 @@
     <ClInclude Include="header\polygon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="header\grid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="header\map_texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="notes.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\images\test.svg" />
   </ItemGroup>
 </Project>

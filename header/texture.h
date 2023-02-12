@@ -11,7 +11,6 @@ class Texture
 {
 public:
 	Texture() = delete;
-	// Can only be created inside Game::
 	Texture(SDL_Renderer* defaultRenderer, std::string pathOrText, TTF_Font* defaultFont = nullptr, SDL_Color* textColor = nullptr);
 	Texture(Texture&& other) noexcept;
 

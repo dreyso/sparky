@@ -13,12 +13,12 @@ void CameraComponent::update3(float deltaTime)
     int windowWidth = 0, windowHeight = 0;
     SDL_GetWindowSize(mWindow, &windowWidth, &windowHeight);
 
-    // Get reference to entity's collision box
-    const SDL_FRect& collisionBox = mOwner->getComponent<MechanicalComponent>().getCollisionBox();
+    // Get entity's position
+    auto& pos = mOwner->getComponent<MechanicalComponent>().getCollisionBox().getPos();
 
     // Find the centered, target-destination values for the camera
-    float destX = ((collisionBox.x + collisionBox.w / 2.f) - static_cast<float>(windowWidth) / 2.f);
-    float destY = ((collisionBox.y + collisionBox.h / 2.f) - static_cast<float>(windowHeight) / 2.f);
+    float destX = (pos.getX() - static_cast<float>(windowWidth) / 2.f);
+    float destY = (pos.getY() - static_cast<float>(windowHeight) / 2.f);
 
     // Find how much to add to the camera's position using elapsed time as a percentage
     float addX = (destX - mCamera.x) * (3.f * deltaTime);

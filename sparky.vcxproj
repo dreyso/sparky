@@ -147,7 +147,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\collision.cpp" />
     <ClCompile Include="src\components\behavior_component.cpp" />
     <ClCompile Include="src\components\camera_component.cpp" />
     <ClCompile Include="src\components\key_press_accel_component.cpp" />
@@ -156,15 +155,15 @@
     <ClCompile Include="src\components\texture_component.cpp" />
     <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\map.cpp" />
-    <ClCompile Include="src\pathfinder.cpp" />
+    <ClCompile Include="src\collision_map.cpp" />
+    <ClCompile Include="src\search_graph.cpp" />
     <ClCompile Include="src\polygon.cpp" />
     <ClCompile Include="src\texture.cpp" />
+    <ClCompile Include="src\map_texture.cpp" />
     <ClCompile Include="src\timer.cpp" />
     <ClCompile Include="src\vec.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="header\collision.h" />
     <ClInclude Include="header\components\behavior_component.h" />
     <ClInclude Include="header\components\camera_component.h" />
     <ClInclude Include="header\components\component.h" />
@@ -174,17 +173,22 @@
     <ClInclude Include="header\entity.h" />
     <ClInclude Include="header\game.h" />
     <ClInclude Include="header\components\mechanical_component.h" />
-    <ClInclude Include="header\map.h" />
-    <ClInclude Include="header\pathfinder.h" />
+    <ClInclude Include="header\grid.h" />
+    <ClInclude Include="header\collision_map.h" />
+    <ClInclude Include="header\search_graph.h" />
     <ClInclude Include="header\polygon.h" />
     <ClInclude Include="header\screen_size.h" />
     <ClInclude Include="header\texture.h" />
+    <ClInclude Include="header\map_texture.h" />
     <ClInclude Include="header\timer.h" />
     <ClInclude Include="header\util.h" />
     <ClInclude Include="header\vec.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="notes.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\images\test.svg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

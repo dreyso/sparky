@@ -15,6 +15,7 @@ public:
     Vec(float x, float y) : mX{ x }, mY{ y }{}
     ~Vec() = default;
 
+    void swap(Vec& other);
     // Getters
     float operator[](int row) const;
     float getX() const;
@@ -43,6 +44,10 @@ public:
     bool operator==(const Vec& vec) const;
     bool operator!=(const Vec& vec) const;
 
+    bool operator>(const Vec& vec) const;
+    bool operator>=(const Vec& vec) const;
+    bool operator<(const Vec& vec) const;
+    bool operator<=(const Vec& vec) const;
 
     // Scalar operations
     Vec& operator*=(float scalar);

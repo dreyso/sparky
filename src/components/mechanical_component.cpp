@@ -1,5 +1,6 @@
 #include "../../header/components/mechanical_component.h"
 #include "../../header/vec.h"
+#include "../../header/polygon.h"
 
 #include <cmath>
 
@@ -15,15 +16,11 @@ void MechanicalComponent::update(float deltaTime, const Vec& accel)
     else
     {
         // Update rotation only if velocity hasn't been truncated
-        mRotationAngle = atan2(static_cast<double>(mVel.getY()), static_cast<double>(mVel.getX())) * (180.0 / M_PI);
+        mCollisionBox.rotateTo(atan2(mVel.getY(), mVel.getX()) * (180.f / static_cast<float>(M_PI)));
     }
 
     // Update position
-    mPos += mVel * deltaTime;
-
-    // Update collision box position as well
-    mCollisionBox.x = mPos.getX();
-    mCollisionBox.y = mPos.getY();
+    mCollisionBox.moveBy(mVel * deltaTime);
 }
 
 void MechanicalComponent::resetVel()  
@@ -35,17 +32,14 @@ void MechanicalComponent::resetVel()
 
 void MechanicalComponent::addToPos(const Vec& toAdd)
 {
-    mPos += toAdd;
-    // Update collision box position as well
-    mCollisionBox.x = mPos.getX();
-    mCollisionBox.y = mPos.getY();
+    mCollisionBox.moveBy(toAdd);
 }
 
-const Vec& MechanicalComponent::getPos() const { return mPos; }
+const Vec& MechanicalComponent::getPos() const { return mCollisionBox.getPos(); }
 
 const Vec& MechanicalComponent::getVel() const { return mVel; }
 
-const SDL_FRect& MechanicalComponent::getCollisionBox() {return mCollisionBox; }
+const ConvexPolygon& MechanicalComponent::getCollisionBox() {return mCollisionBox; }
 
-double MechanicalComponent::getRotationAngle() const { return mRotationAngle; }
+double MechanicalComponent::getRotationAngle() const { return mCollisionBox.getRotAngle(); }
 

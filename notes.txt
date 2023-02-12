@@ -157,3 +157,21 @@ struct hash_unordered_pair_fn
             polygons.push_back(vertices);
         }
     }
+
+
+// Returns the manhattan distance between 2 tiles
+int getDistance(const MapInternals::Region* startTile, const MapInternals::Region* endTile) const;
+
+int Pathfinder::getDistance(const Tile* startTile, const Tile* endTile) const
+{
+    const SDL_Rect* start = startTile->getCollisionBox();
+    const SDL_Rect* end = endTile->getCollisionBox();
+
+    int deltaX = abs(start->x - end->x) / TILE_SIDE_LENGTH;
+    int deltaY = abs(start->y - end->y) / TILE_SIDE_LENGTH;
+
+    if (deltaX > deltaY)
+        return (static_cast<int>(DIAGONAL_DISTANCE) * deltaY) + (static_cast<int>(ACROSS_DISTANCE) * (deltaX - deltaY));
+    else
+        return (static_cast<int>(DIAGONAL_DISTANCE) * deltaX) + (static_cast<int>(ACROSS_DISTANCE) * (deltaY - deltaX));
+}

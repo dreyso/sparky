@@ -10,16 +10,23 @@ class Rect
 public:
 
 	Rect() = default;
-	Rect(float x, float y, float width, float height) : x{ x }, y{ y }, width{ width }, height{ height }{}
+	Rect(float x, float y, float width, float height) : x{ x }, y{ y }, w{ width }, h{ height }{}
+	Rect(const Vec& pos, float width, float height) : x{ pos.getX() }, y{ pos.getY() }, w{ width }, h{ height }{}
 	~Rect() = default;
 
+	void swap(Rect& other);
 	void set(float x, float y, float width, float height);
+	void set(const Vec& pos, float width, float height);
+	void setPos(const Vec& pos);
+	Vec getPos() const;
 	static bool isIntersecting(const Rect& a, const Rect& b);
+	static Rect combine(const Rect& a, const Rect& b);
+
 
 	float x = 0.f;
 	float y = 0.f;
-	float width = 0.f;
-	float height = 0.f;
+	float w = 0.f;
+	float h = 0.f;
 };
 
 class ConvexPolygon;
@@ -75,11 +82,17 @@ public:
 	* Output:
 	* The transformed polygon.
 	*/
-	void offsetVerticesBy(float distance);
+	Polygon offsetVerticesBy(float distance) const;
 
 	const Vec& getPos() const;
+
+	float getRotAngle() const;
 	
 	const Rect& getAABB() const;
+
+	// Get the smallest rectangle that can fit the polygon
+	Rect getRectHull() const;
+
 
 	const std::vector<Vec>& getVertices() const;
 
@@ -170,6 +183,8 @@ public:
 	* A vector of polygons.
 	*/
 	static std::vector<Polygon> read_SVG_polygons(const char* pathToSVG);
+	static Polygon read_SVG_polygon(const char* pathToSVG);
+
 
 protected:
 
@@ -177,11 +192,13 @@ protected:
 	Polygon() = default;
 
 private:
-	
+	void integrityCheck();
 	void initPos();
 	void rotateVerticesBy(float degrees);
 	void updateAbsoluteVertices();
-	void setBoundingBox();
+	void setAABB();
+	void updateAABB();
+
 
 	Vec mPos;                                   // Centroid
 	std::vector<Vec> mRelativeVertices;         // Only change during rotations
@@ -189,7 +206,10 @@ private:
 
 	float mRotAngle = 0.f;
 
+	// Dimensions of AABB do not change
 	Rect mAABB;
+	// The lower x, lower y corner of the AABB relative to the polygon's position
+	Vec mAABB_Offset;
 };
 
 class ConvexPolygon : public Polygon

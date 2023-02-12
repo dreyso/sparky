@@ -9,12 +9,25 @@ const float EQUIVALENCE_THRESHOLD = 0.01f;
 
 std::array<float, 2>& Matrix::operator[](int row)
 {
+	if(row > 1)
+		throw(std::runtime_error{ "Error: Out of bounds matrix access\n" });
+
 	return mMatrix[row];
 }
 
 const std::array<float, 2>& Matrix::operator[](int row) const
 {
+	if (row > 1)
+		throw(std::runtime_error{ "Error: Out of bounds matrix access\n" });
+
 	return mMatrix[row];
+}
+
+void Vec::swap(Vec& other)
+{
+	Vec temp{ other };
+	other = *this;
+	*this = temp;
 }
 
 float Vec::operator[](int row) const
@@ -126,6 +139,23 @@ bool Vec::operator==(const Vec& vec) const
 bool Vec::operator!=(const Vec& vec) const
 {
 	return !(*this == vec);
+}
+
+bool Vec::operator>(const Vec& vec) const
+{
+	return (*this * *this) > (vec * vec);
+}
+bool Vec::operator>=(const Vec& vec) const
+{
+	return (*this * *this) >= (vec * vec);
+}
+bool Vec::operator<(const Vec& vec) const
+{
+	return (*this * *this) < (vec * vec);
+}
+bool Vec::operator<=(const Vec& vec) const
+{
+	return (*this * *this) <= (vec * vec);
 }
 
 // Scalar operations

@@ -1,7 +1,7 @@
 #include "../../header/components/map_collision_component.h"
 #include "../../header/components/mechanical_component.h"
 #include "../../header/components/component.h"
-#include "../../header/map.h"
+#include "../../header/collision_map.h"
 
 #include "../../header/vec.h"
 #include "../../header/polygon.h"
@@ -14,9 +14,7 @@ void MapCollisionComponent::update2(float deltaTime)
 {
     MechanicalComponent& mechComp = mOwner->getComponent<MechanicalComponent>();
     // Get reference to entity's collision box
-    const SDL_FRect& collisionBox = mechComp.getCollisionBox();
+    const ConvexPolygon& collisionBox = mechComp.getCollisionBox();
     
-    Vec adjustPos{ 0.f,0.f };
-    if (mMap->checkWallCollisions(collisionBox, adjustPos))
-        mechComp.addToPos(adjustPos);
+    mechComp.addToPos(mMap->resolveCollisions(collisionBox));
 }
