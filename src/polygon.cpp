@@ -203,19 +203,25 @@ bool Polygon::hasCollinearEdges(const std::vector<Vec>& vertices)
 // Not indlucding adjacent edges (vertex joints and possibly adjacent collinear edge overlap)
 bool Polygon::isSelfIntersecting(const std::vector<Vec>& vertices)
 {
+    // Triangles cannot self intersect
+    if (vertices.size() == 3)
+        return false;
+
     auto edges = getEdges(vertices);
 
     // Check for intersection between all edges
     for (int iEdge = 0; iEdge < edges.size(); ++iEdge)
     {
-        for (int jEdge = iEdge + 1; jEdge < edges.size(); ++jEdge)
+        for (int jEdge = iEdge + 2; jEdge < edges.size(); ++jEdge)
         {
+            // First and last elements are adjacent, skip them
+            if(iEdge == 0 && jEdge == edges.size() - 1)
+                continue;
+
             auto solution = Vec::findIntersection(edges[iEdge].first, edges[iEdge].second, edges[jEdge].first, edges[jEdge].second);
-            // Adjacent edges must have a point solution
-            if (jEdge - iEdge == 1 && std::get<Solution>(solution) != Solution::POINT_SOLUTION)
-                return true;
+
             // All non-adjacent edges must have no solution
-            else if (std::get<Solution>(solution) != Solution::NO_SOLUTION)
+            if (std::get<Solution>(solution) != Solution::NO_SOLUTION)
                 return true;
         }
     }
