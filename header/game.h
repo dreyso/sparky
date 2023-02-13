@@ -76,7 +76,6 @@ private:
     // Holds the pathfinding data
     SearchGraph mSearchGraph;
 
-
     Entity player;
     Entity bob;
     Entity sob;

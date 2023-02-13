@@ -32,6 +32,7 @@ Texture::Texture(SDL_Renderer* defaultRenderer, std::string pathOrText, TTF_Font
 		fprintf(stderr, "%s", SDL_GetError());
 		exit(-1);
 	}
+	printf("\n%d, %d\n", mWidth, mHeight);
 }
 
 Texture::Texture(Texture&& texture) noexcept

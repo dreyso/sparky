@@ -169,9 +169,6 @@ public:
         return intersectingRegions;
     }
 
-    // Returns the regions around and under the point
-    std::vector<const RegionType*> getRegionsAroundPoint(const Vec& point) const;
-
 private:
     // Utility grid variables
     int mRegionSideLength = 100;

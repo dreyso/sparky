@@ -109,6 +109,15 @@ bool GameLoader::init()
 		return false;
 	}
 	
+	// Print info about max texture dimensions
+	SDL_RendererInfo info;
+	if (SDL_GetRendererInfo(mRenderer.get(), &info) < 0)
+	{
+		fprintf(stderr, "%s", SDL_GetError());
+		return false;
+	}
+	printf("Max texture width: %d\nMax texture height : % d\n", info.max_texture_width, info.max_texture_height);
+
 	return true;
 }
 void GameLoader::close()
@@ -125,7 +134,7 @@ void GameLoader::close()
 }
 //SearchGraph(const CollisionMap& collisionMap, const std::vector<Vec>& points, int SVG_Width, int SVG_Height);
 
-Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/test.svg" }, 
+Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/test.png" }, 
 mCollisionMap{ "assets/images/test.svg", mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }, 
 mSearchGraph{ mCollisionMap, mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }
 {

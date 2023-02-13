@@ -123,7 +123,4 @@
   <ItemGroup>
     <Text Include="notes.txt" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="assets\images\test.svg" />
-  </ItemGroup>
 </Project>
