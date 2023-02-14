@@ -13,6 +13,10 @@ void CameraComponent::update3(float deltaTime)
     int windowWidth = 0, windowHeight = 0;
     SDL_GetWindowSize(mWindow, &windowWidth, &windowHeight);
 
+    // Set camera dimensions
+    mCamera.w = static_cast<int>(roundf(windowWidth));
+    mCamera.h = static_cast<int>(roundf(windowHeight));
+
     // Get reference to entity's collision box
     const SDL_FRect& collisionBox = mOwner->getComponent<MechanicalComponent>().getCollisionBox();
 
