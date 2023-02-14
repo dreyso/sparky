@@ -13,6 +13,11 @@ void CameraComponent::update3(float deltaTime)
     int windowWidth = 0, windowHeight = 0;
     SDL_GetWindowSize(mWindow, &windowWidth, &windowHeight);
 
+    // Set camera dimensions
+    mCamera.w = static_cast<int>(roundf(windowWidth));
+    mCamera.h = static_cast<int>(roundf(windowHeight));
+
+
     // Get entity's position
     auto& pos = mOwner->getComponent<MechanicalComponent>().getCollisionBox().getPos();
 

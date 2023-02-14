@@ -110,7 +110,7 @@ public:
     std::vector<const RegionType*> getRegionsUnderPoint(const Vec& point) const
     {
         // Check if point is inside grid bounds
-        if (isPointOnGrid(point))
+        if (!isPointOnGrid(point))
             throw(std::invalid_argument{ "Error: Point is outside of map bounds\n" });
 
         std::vector<const RegionType*> regionsUnderPoint;
