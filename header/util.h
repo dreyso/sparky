@@ -76,6 +76,12 @@ public:
     {
         correctIndex();
     }
+    Circulator(const Circulator& other) : mList{ other.mList }, mIndex{ other.mIndexindex }{}
+
+    auto getIndex() const
+    {
+        return mIndex;
+    }
 
     // Positive indices start from 0, negative start from the end
     auto& operator++()
@@ -90,6 +96,29 @@ public:
         --mIndex;
         correctIndex();
         return mList[mIndex];
+    }
+
+    auto& operator+=(int addToIndex)
+    {
+        mIndex += addToIndex;
+        correctIndex();
+        return mList[mIndex];
+    }
+
+    auto& operator-=(int subFromIndex)
+    {
+        mIndex -= subFromIndex;
+        correctIndex();
+        return mList[mIndex];
+    }
+
+    auto operator+(int addToIndex) const
+    {
+        return Circulator{mList, mIndex + addToIndex};
+    }
+    auto operator-(int subFromIndex) const
+    {
+        return Circulator{ mList, mIndex - subFromIndex };
     }
     
     auto& operator*()

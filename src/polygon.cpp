@@ -12,6 +12,8 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+//#include <assert.h>
+
 
 void Rect::swap(Rect& other)
 {
@@ -354,19 +356,24 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
     auto vertices{ mAbsoluteVertices };     // Copy of polygon's vertices
     std::vector<ConvexPolygon> triangles;   // Array to be returned
 
-    for (int iMiddle = 0; iMiddle < vertices.size() && vertices.size() > 3; ++iMiddle)
-    {
-        // Try every consecutive trio of vertices
-        auto prev = Circulator{ vertices, iMiddle - 1};
-        auto middle = Circulator{ vertices, iMiddle };
-        auto next = Circulator{ vertices, iMiddle + 1 };
-           
+     // Try every consecutive trio of vertices start is arbitrary
+    auto middle = Circulator{ vertices, (int)vertices.size() - 1 };
+
+    while (vertices.size() > 3)
+    {      
+        ++middle;
+
+        // Try next trio
+        auto prev = middle - 1;
+        auto next = middle + 1;
+
         // -- Test if the vertex is convex -----------------------------------------
             
         Vec 𝙫0{ *middle - *prev };
         Vec 𝙫1{ *next - *middle };
-
-        if (𝙫0.cross(𝙫1) > 0.f)   // Skip concave angles
+      
+        // Skip concave angles
+        if (!goingRight(𝙫0, 𝙫1))
             continue;
 
         // Define 3rd triangle edge
@@ -375,7 +382,7 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
         // -- Test if any vertices fall inside the triangle -----------------------------------------
 
         bool found = false;
-        auto current = Circulator{ vertices, iMiddle + 2};
+        auto current = middle + 2;
 
         while (!found && current != prev)
         {
@@ -383,7 +390,7 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
             Vec arr[3]{ {*current - *prev}, {*current - *middle}, {*current - *next} };
 
             // Cross each vector with its respective edge vector
-            found = (𝙫0.cross(arr[0]) > 0.f) && (𝙫1.cross(arr[1]) > 0.f) && (𝙫2.cross(arr[2]) > 0.f);
+            found = (goingRight(𝙫0, arr[0]) && goingRight(𝙫1, arr[1]) && goingRight(𝙫2, arr[2]));
                 
             ++current;
         }
@@ -395,17 +402,17 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
         // -- Clip the ear -----------------------------------------
 
         // Add the triangle to the list
-        triangles.emplace_back(std::vector<Vec>{*prev, * middle, * next});
+        triangles.emplace_back(std::vector<Vec>{*prev, *middle, *next});
 
-        // Remvoe the middle vertex
-        vertices.erase(vertices.begin() + iMiddle);
-        
-        // Stay on current index for next iteration since the array shrunk by 1
-        --iMiddle;
+        // Remove the middle vertex
+        vertices.erase(vertices.begin() + middle.getIndex());
+
+        // Avoid changing indices
+        middle -= 2;
     }
 
     // Add the last triangle
-    triangles.push_back(vertices);
+    triangles.emplace_back(vertices);
 
     return triangles;
 }
@@ -583,8 +590,8 @@ ConvexPolygon& ConvexPolygon::operator=(std::vector<Vec> vertices)
     return *this;
 }
 
-// Convex means that the next edge vector is to the right of the current one (negative cross product)
-// Note: If the te polygon ends up convex, it is gaureenteed to be clockwise and have no collinear edges.
+// Convex means that the current edge vector is to the left of the next one (negative cross product)
+// Note: If the the polygon ends up convex, it is gaureenteed to be clockwise and have no collinear edges.
 bool ConvexPolygon::isConvex()
 {
     auto& vertices = getVertices();
@@ -600,8 +607,8 @@ bool ConvexPolygon::isConvex()
         v1 -= v0;
         v2 -= v0;
 
-        // If the signs are different, the polygon is not convex
-        if (!(v1.cross(v2) < 0.f))
+        // Next edge must be to the right of the current one
+        if (!goingRight(v1, v2))
             return false;
     }
    
@@ -912,4 +919,9 @@ Polygon Polygon::read_SVG_polygon(const char* pathToSVG)
 
     // Add the polygon to the list
     return Polygon{ std::move(vertices) };
+}
+
+bool Polygon::goingRight(const Vec& current, const Vec& next) const
+{
+    return current.cross(next) < 0.f;
 }

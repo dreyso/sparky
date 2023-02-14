@@ -191,6 +191,10 @@ protected:
 	// Used in the move constructor
 	Polygon() = default;
 
+	// Checks if the the current vector is to the left of the next vector
+	// Required for convex vertices
+	bool goingRight(const Vec& current, const Vec& next) const;
+
 private:
 	void integrityCheck();
 	void initPos();
