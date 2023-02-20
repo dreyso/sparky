@@ -134,7 +134,7 @@ void GameLoader::close()
 }
 //SearchGraph(const CollisionMap& collisionMap, const std::vector<Vec>& points, int SVG_Width, int SVG_Height);
 
-Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/test.png" }, 
+Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/test1.png" }, 
 mCollisionMap{ "assets/images/test.svg", mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }, 
 mSearchGraph{ mCollisionMap, mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }
 {
@@ -144,7 +144,7 @@ mSearchGraph{ mCollisionMap, mMapTexture.getTextureWidth(), mMapTexture.getTextu
 	// Initialize the timer for first frame
 	mTimer.start();
 
-	ConvexPolygon entityPolygon{Polygon::read_SVG_polygon("assets/images/triangle.svg")};
+	ConvexPolygon entityPolygon{Polygon::readSvgPolygon("assets/images/triangle.svg")};
 
 	// Temp testing
 	player.addComponent<MechanicalComponent>(entityPolygon);

@@ -171,9 +171,10 @@ public:
 
 	/**
 	* Description:
-	* Loads all polygons from an SVG file, polygons being stored as (points="...").
+	* Loads all polygons from an SVG file, polygons being stored as (points="..."). Minimized SVG's work best.
 	*
 	* Pre-conditions:
+	* The list of vertices must be seperated by atleast 1 space, and the last character cannot be a space.
 	* The SVG polygons must satisfy the rules of the Polygon class, otherwise the constructor will throw an exception.
 	*
 	* Input:
@@ -182,8 +183,8 @@ public:
 	* Output:
 	* A vector of polygons.
 	*/
-	static std::vector<Polygon> read_SVG_polygons(const char* pathToSVG);
-	static Polygon read_SVG_polygon(const char* pathToSVG);
+	static std::vector<Polygon> readSvgPolygons(const char* pathToSVG);
+	static Polygon readSvgPolygon(const char* pathToSVG);
 
 
 protected:

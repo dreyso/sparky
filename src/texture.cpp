@@ -146,8 +146,11 @@ void Texture::draw(int x, int y, const SDL_Rect* crop, double angle, SDL_Point* 
 		SDL_Rect tailoredCrop{ 0, 0, 0, 0 };
 
 		if (!SDL_IntersectRect(&textureDimensions, crop, &tailoredCrop))
-			throw(std::invalid_argument{ "Error: Cropped area does not intersect with texture to be drawn\n" });
-		
+		{
+			printf("Cropped area does not intersect with texture to be drawn\n");
+			return;
+		}
+		// GET WHITE BACKGROUND!!!
 		renderArea.w = tailoredCrop.w;
 		renderArea.h = tailoredCrop.h;
 		

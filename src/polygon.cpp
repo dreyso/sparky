@@ -12,7 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-//#include <assert.h>
+#include <assert.h>
 
 
 void Rect::swap(Rect& other)
@@ -788,109 +788,27 @@ std::vector<Vec> ConvexPolygon::getCollisionAxi() const
 
 /**
 * Implementation:
-* read_SVG_polygons opens the provided file and copies all of its
-* contents into an std::string. The string is then parsed using regex,
-* the result is an iterator over all of the polygons' vertices. Each
-* list of vertices is checked (and corrected) for a clockwise order and
-* the last vertex being a duplicate of the first.
+* Takes raw SVG polygon text and converts it into a list of vectors.
+* SVG format varies, so the function replaces anything other than digits,
+* decimal points, or - sign with spaces. Spaces at the end of the string
+* are removed to allow istream to catch EOF on time.
 */
-std::vector<Polygon> Polygon::read_SVG_polygons(const char* pathToSVG)
+static std::vector<Vec> readInFloats(std::string SVG_PolygonText)
 {
-    // Open the file
-    std::ifstream svgFile{ pathToSVG };
-
-    // Check if the file opened
-    if (svgFile.is_open() == false)
-        throw(std::invalid_argument{ "Error: Unable to open SVG file\n" });
-
-    // Read file into a string buffer
-    std::stringstream buffer;
-    buffer << svgFile.rdbuf();
-
-    // Move stream into string
-    std::string svgString{std::move(buffer).str()};
-
-    std::vector<Polygon> polygons;
-
-    // -- Read in the polygons -----------------------------------------
-
-    // Start at points=" and end at "
-    std::regex polygonRegex("points=\"([^\"]*)\"");
-
-    // Find the lists of vertices in the string
-    std::sregex_iterator current(svgString.begin(), svgString.end(), polygonRegex);
-    std::sregex_iterator end;
-   
-    // Iterate over each string of floats
-    while (current != end)
+    // Replace anything other than digits or a decimal point with spaces
+    for (char& iChar : SVG_PolygonText)
     {
-        std::vector<Vec> vertices;
-        std::stringstream floats{ (current++)->str(1) };   // 1 means 1st capture group, '([^\"]*)'.
-
-        // Read in each float, alternating between x and y
-        while(floats.good())
-        {
-            float tempX, tempY;
-            
-            // Read in the x value
-            floats >> tempX;
-            
-            // Check after reading in the x value
-            if(!floats.good())
-                throw(std::invalid_argument{ "Error: Missing y-value in vertex\n" });
-
-            // read in the y value
-            floats >> tempY;
-            
-            // Add the vertex to the list
-            vertices.emplace_back(tempX, tempY);
-        }
-        
-        // Make vertices clockwise
-        if(!Polygon::isClockwise(vertices))
-            std::reverse(vertices.begin(), vertices.end());
-
-        // Remove last vertex if it is a duplicate of the first (typical for SVG polygons)
-        if(vertices[0] == vertices[vertices.size() - 1])
-            vertices.pop_back();
-
-        // Add the polygon to the list
-        polygons.emplace_back(std::move(vertices));
+        if (!(std::isdigit(iChar) || iChar == '.' || iChar == '-'))
+            iChar = ' ';
     }
+    // Remove any spaces at the end of the list
+    while (SVG_PolygonText[SVG_PolygonText.size() - 1] == ' ')
+        SVG_PolygonText.pop_back();
 
-    return polygons;
-}
-
-Polygon Polygon::read_SVG_polygon(const char* pathToSVG)
-{
-    // Open the file
-    std::ifstream svgFile{ pathToSVG };
-
-    // Check if the file opened
-    if (svgFile.is_open() == false)
-        throw(std::invalid_argument{ "Error: Unable to open SVG file\n" });
-
-    // Read file into a string buffer
-    std::stringstream buffer;
-    buffer << svgFile.rdbuf();
-
-    // Move stream into string
-    std::string svgString{ std::move(buffer).str() };
-
-    // -- Read in the polygon -----------------------------------------
-
-    // Start at points=" and end at "
-    std::regex polygonRegex("points=\"([^\"]*)\"");
-
-    // Find the lists of vertices in the string
-    std::smatch match;
-    if (!std::regex_search(svgString, match, polygonRegex))
-        throw(std::invalid_argument{ "Error: No polygon in SVG file\n" });
-
+    // Convert string into a stream for easy reading in
+    std::stringstream floats{ std::move(SVG_PolygonText) };   // 1 means 1st capture group, '([^\"]*)'.
     std::vector<Vec> vertices;
-    std::stringstream floats{ match[1] };   // 1 means 1st capture group, '([^\"]*)'.
 
-    // Read in each float, alternating between x and y
     while (floats.good())
     {
         float tempX, tempY;
@@ -908,7 +826,17 @@ Polygon Polygon::read_SVG_polygon(const char* pathToSVG)
         // Add the vertex to the list
         vertices.emplace_back(tempX, tempY);
     }
+    return vertices;
+}
 
+/**
+* Implementation:
+* SVG files do not gaureentee the order of the vertices,
+* so they may need to be reversed. The first and last vertex
+* may be identical, in which case it is removed.
+*/
+static void fixSvgVertices(std::vector<Vec>& vertices)
+{
     // Make vertices clockwise
     if (!Polygon::isClockwise(vertices))
         std::reverse(vertices.begin(), vertices.end());
@@ -916,6 +844,103 @@ Polygon Polygon::read_SVG_polygon(const char* pathToSVG)
     // Remove last vertex if it is a duplicate of the first (typical for SVG polygons)
     if (vertices[0] == vertices[vertices.size() - 1])
         vertices.pop_back();
+}
+
+
+/**
+* Implementation:
+* Opens the provided file and copies all of its
+* contents into an std::string. The string is then parsed using regex,
+* the result is an iterator over all of the polygons' vertices. Each
+* list of vertices is checked (and corrected) for a clockwise order and
+* the last vertex being a duplicate of the first.
+*/
+std::vector<Polygon> Polygon::readSvgPolygons(const char* pathToSVG)
+{
+    // Open the file
+    std::ifstream svgFile{ pathToSVG };
+
+    // Check if the file opened
+    if (svgFile.is_open() == false)
+        throw(std::invalid_argument{ "Error: Unable to open SVG file\n" });
+
+    // Read file into a string buffer
+    std::stringstream buffer;
+    buffer << svgFile.rdbuf();
+
+    // Move stream into string
+    std::string svgString{std::move(buffer).str()};
+
+    std::vector<Polygon> polygons;
+
+    // -- Read and parse the file -----------------------------------------
+
+    // Start at points=" and end at "
+    std::regex polygonRegex("points=\"([^\"]*)\"");
+
+    // Find the lists of vertices in the string
+    std::sregex_iterator current(svgString.begin(), svgString.end(), polygonRegex);
+    std::sregex_iterator end;
+   
+    // -- Parse the vertices and create the polygons -----------------------------------------
+
+    // Iterate over each string of floats
+    while (current != end)
+    {
+        // Convert captured group into a list of vertices
+        auto vertices{ readInFloats((current++)->str(1)) };
+        
+        // Fix order of vertices and remove duplicate vertex at the end
+        fixSvgVertices(vertices);
+
+        // Add the polygon to the list
+        polygons.emplace_back(std::move(vertices));
+    }
+
+    return polygons;
+}
+
+/**
+* Implementation:
+* Opens the provided file and copies all of its
+* contents into an std::string. The string is then parsed using regex,
+* the result is an iterator over all of the polygon's vertices. The
+* list of vertices is checked (and corrected) for a clockwise order and
+* the last vertex being a duplicate of the first.
+*/
+Polygon Polygon::readSvgPolygon(const char* pathToSVG)
+{
+    // Open the file
+    std::ifstream svgFile{ pathToSVG };
+
+    // Check if the file opened
+    if (svgFile.is_open() == false)
+        throw(std::invalid_argument{ "Error: Unable to open SVG file\n" });
+
+    // Read file into a string buffer
+    std::stringstream buffer;
+    buffer << svgFile.rdbuf();
+
+    // Move stream into string
+    std::string svgString{ std::move(buffer).str() };
+
+    // -- Read and parse the file -----------------------------------------
+
+    // Start at points=" and end at "
+    std::regex polygonRegex("points=\"([^\"]*)\"");
+
+    // Find the lists of vertices in the string
+    std::smatch match;
+    if (!std::regex_search(svgString, match, polygonRegex))
+        throw(std::invalid_argument{ "Error: No polygon in SVG file\n" });
+ 
+    // -- Parse the vertices and create the polygon -----------------------------------------
+
+    // Convert captured group into a list of vertices
+    auto vertices{ readInFloats(match[1]) };
+
+    // Fix order of vertices and remove duplicate vertex at the end
+    fixSvgVertices(vertices);
 
     // Add the polygon to the list
     return Polygon{ std::move(vertices) };

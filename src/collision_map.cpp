@@ -39,7 +39,7 @@ CollisionMap::CollisionMap(const char* pathToSVG, int SVG_Width, int SVG_Height)
     // -- Read and triangulate polygons -----------------------------------------
 
     // Read the polygons in the svg file
-    mMapPolygons = Polygon::read_SVG_polygons(pathToSVG);
+    mMapPolygons = Polygon::readSvgPolygons(pathToSVG);
 
     // Get each polygon's triangles, reserve the minimum amount first
     mMapTriangles.reserve(mMapPolygons.size());
