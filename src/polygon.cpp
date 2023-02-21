@@ -26,11 +26,11 @@ void Rect::set(float x, float y, float width, float height)
 {
     this->x = x;
     this->y = y;
-    if (width < 0)
-        throw(std::invalid_argument{ "Error: Negative width\n" });
+    if (width <= 0)
+        throw(std::invalid_argument{ "Error: Negative or 0 width\n" });
     this->w = width;
-    if (height < 0)
-        throw(std::invalid_argument{ "Error: Negative height\n" });
+    if (height <= 0)
+        throw(std::invalid_argument{ "Error: Negative or 0 height\n" });
     this->h = height;
 }
 
@@ -38,11 +38,11 @@ void Rect::set(const Vec& pos, float width, float height)
 {
     this->x = pos.getX();
     this->y = pos.getY();
-    if (width < 0)
-        throw(std::invalid_argument{ "Error: Negative width\n" });
+    if (width <= 0)
+        throw(std::invalid_argument{ "Error: Negative or 0 width\n" });
     this->w = width;
-    if (height < 0)
-        throw(std::invalid_argument{ "Error: Negative height\n" });
+    if (height <= 0)
+        throw(std::invalid_argument{ "Error: Negative or 0 height\n" });
     this->h = height;
 }
 
@@ -438,7 +438,6 @@ void Polygon::moveTo(const Vec& pos)
     mPos = pos;
     updateAbsoluteVertices();
     updateAABB();
-
 }
 
 void Polygon::rotateTo(float degrees)
@@ -546,7 +545,6 @@ void Polygon::setAABB()
 
     // Set the position of the AABB relative to the position of the polygon
     mAABB_Offset = Vec{ -1.f, -1.f };
-    mAABB_Offset.normalize();
     mAABB_Offset *= radius.getMagnitude();
 
     // Create the AABB, centered on the centroid

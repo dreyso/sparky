@@ -144,7 +144,7 @@ mSearchGraph{ mCollisionMap, mMapTexture.getTextureWidth(), mMapTexture.getTextu
 	// Initialize the timer for first frame
 	mTimer.start();
 
-	ConvexPolygon entityPolygon{Polygon::readSvgPolygon("assets/images/triangle.svg")};
+	ConvexPolygon entityPolygon{ Polygon::readSvgPolygon("assets/images/triangle.svg") };
 
 	// Temp testing
 	player.addComponent<MechanicalComponent>(entityPolygon);
@@ -305,6 +305,14 @@ void Game::render()
 	mMapTexture.draw(player.getComponent<CameraComponent>().getCamera());
 
 	// Temp
+	/*auto aabb = player.getComponent<MechanicalComponent>().getCollisionMesh().getAABB();
+	SDL_Rect rect;
+	rect.x = (int)roundf(aabb.x - player.getComponent<CameraComponent>().getCamera().x);
+	rect.y = (int)roundf(aabb.y - player.getComponent<CameraComponent>().getCamera().y);
+	rect.w = (int)aabb.w;
+	rect.h = (int)aabb.h;
+	SDL_RenderDrawRect(mRenderer.get(), &rect);*/
+
 	player.draw();
 	bob.draw();
 	sob.draw();
