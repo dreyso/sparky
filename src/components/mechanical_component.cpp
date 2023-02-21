@@ -16,11 +16,11 @@ void MechanicalComponent::update(float deltaTime, const Vec& accel)
     else
     {
         // Update rotation only if velocity hasn't been truncated
-        mCollisionBox.rotateTo(atan2(mVel.getY(), mVel.getX()) * (180.f / static_cast<float>(M_PI)));
+        mCollisionMesh.rotateTo(atan2(mVel.getY(), mVel.getX()) * (180.f / static_cast<float>(M_PI)));
     }
-
+    
     // Update position
-    mCollisionBox.moveBy(mVel * deltaTime);
+    mCollisionMesh.moveBy(mVel * deltaTime);
 }
 
 void MechanicalComponent::resetVel()  
@@ -32,14 +32,14 @@ void MechanicalComponent::resetVel()
 
 void MechanicalComponent::addToPos(const Vec& toAdd)
 {
-    mCollisionBox.moveBy(toAdd);
+    mCollisionMesh.moveBy(toAdd);
 }
 
-const Vec& MechanicalComponent::getPos() const { return mCollisionBox.getPos(); }
+const Vec& MechanicalComponent::getPos() const { return mCollisionMesh.getPos(); }
 
 const Vec& MechanicalComponent::getVel() const { return mVel; }
 
-const ConvexPolygon& MechanicalComponent::getCollisionBox() {return mCollisionBox; }
+const ConvexPolygon& MechanicalComponent::getCollisionMesh() {return mCollisionMesh; }
 
-double MechanicalComponent::getRotationAngle() const { return mCollisionBox.getRotAngle(); }
+double MechanicalComponent::getRotationAngle() const { return mCollisionMesh.getRotAngle(); }
 

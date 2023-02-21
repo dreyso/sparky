@@ -13,8 +13,8 @@
 void MapCollisionComponent::update2(float deltaTime)
 {
     MechanicalComponent& mechComp = mOwner->getComponent<MechanicalComponent>();
-    // Get reference to entity's collision box
-    const ConvexPolygon& collisionBox = mechComp.getCollisionBox();
+    // Get reference to entity's collision mesh
+    const ConvexPolygon& collisionMesh = mechComp.getCollisionMesh();
     
-    mechComp.addToPos(mMap->resolveCollisions(collisionBox));
+    mechComp.addToPos(mMap->resolveCollisions(collisionMesh));
 }

@@ -12,13 +12,13 @@ class MechanicalComponent : public Component
 {
 public:
 	MechanicalComponent() = delete;
-	MechanicalComponent(Entity* owner, const ConvexPolygon& collisionBox) : Component{ owner }, mCollisionBox{ collisionBox }{}
-	MechanicalComponent(Entity* owner, ConvexPolygon&& collisionBox) : Component{ owner }, mCollisionBox{ std::move(collisionBox) }{}
+	MechanicalComponent(Entity* owner, const ConvexPolygon& collisionMesh) : Component{ owner }, mCollisionMesh{ collisionMesh }{}
+	MechanicalComponent(Entity* owner, ConvexPolygon&& collisionMesh) : Component{ owner }, mCollisionMesh{ std::move(collisionMesh) }{}
 	
-	MechanicalComponent(Entity* owner,  const ConvexPolygon& collisionBox, const Vec& vel)
-		: Component{ owner }, mCollisionBox{ collisionBox }, mVel{ vel }{}
-	MechanicalComponent(Entity* owner, ConvexPolygon&& collisionBox, const Vec& vel)
-		: Component{ owner }, mCollisionBox{ std::move(collisionBox) }, mVel{ vel }{}
+	MechanicalComponent(Entity* owner,  const ConvexPolygon& collisionMesh, const Vec& vel)
+		: Component{ owner }, mCollisionMesh{ collisionMesh }, mVel{ vel }{}
+	MechanicalComponent(Entity* owner, ConvexPolygon&& collisionMesh, const Vec& vel)
+		: Component{ owner }, mCollisionMesh{ std::move(collisionMesh) }, mVel{ vel }{}
 
 	virtual ~MechanicalComponent() {}
 
@@ -29,10 +29,10 @@ public:
 	void addToPos(const Vec& toAdd);
 	const Vec& getPos() const;
 	const Vec& getVel() const;
-	const ConvexPolygon& getCollisionBox();
+	const ConvexPolygon& getCollisionMesh();
 	double getRotationAngle() const;
 
 protected:
-	ConvexPolygon mCollisionBox;
+	ConvexPolygon mCollisionMesh;
 	Vec mVel{ 0.f, 0.f };
 };

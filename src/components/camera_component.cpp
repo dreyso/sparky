@@ -5,6 +5,7 @@
 
 #include <SDL.h>
 
+#define TO_FLOAT(intValue) (static_cast<float>(intValue))
 
 // Center the camera over the player using linear interpolation
 void CameraComponent::update3(float deltaTime)
@@ -14,15 +15,15 @@ void CameraComponent::update3(float deltaTime)
     SDL_GetWindowSize(mWindow, &windowWidth, &windowHeight);
 
     // Set camera dimensions
-    mCamera.w = static_cast<int>(roundf(windowWidth));
-    mCamera.h = static_cast<int>(roundf(windowHeight));
+    mCamera.w = TO_FLOAT(windowWidth);
+    mCamera.h = TO_FLOAT(windowHeight);
 
     // Get entity's position
-    auto& pos = mOwner->getComponent<MechanicalComponent>().getCollisionBox().getPos();
+    auto& pos = mOwner->getComponent<MechanicalComponent>().getCollisionMesh().getPos();
 
     // Find the centered, target-destination values for the camera
-    float destX = (pos.getX() - static_cast<float>(windowWidth) / 2.f);
-    float destY = (pos.getY() - static_cast<float>(windowHeight) / 2.f);
+    float destX = (pos.getX() - TO_FLOAT(windowWidth) / 2.f);
+    float destY = (pos.getY() - TO_FLOAT(windowHeight) / 2.f);
 
     // Find how much to add to the camera's position using elapsed time as a percentage
     float addX = (destX - mCamera.x) * (3.f * deltaTime);

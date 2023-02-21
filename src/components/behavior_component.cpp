@@ -55,7 +55,7 @@ void BehaviorComponent::update1(float deltaTime)
     }
     
     // Get entity's current position
-    auto& pos = mechComp.getCollisionBox().getPos();
+    auto& pos = mechComp.getCollisionMesh().getPos();
 
     // Calculate the angle needed to accelerate towards the next point on the path
     float deltaX, deltaY;
