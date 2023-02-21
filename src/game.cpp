@@ -134,8 +134,8 @@ void GameLoader::close()
 }
 //SearchGraph(const CollisionMap& collisionMap, const std::vector<Vec>& points, int SVG_Width, int SVG_Height);
 
-Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/test1.png" }, 
-mCollisionMap{ "assets/images/test.svg", mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }, 
+Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/demo.png" }, 
+mCollisionMap{ "assets/images/demo.svg", mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }, 
 mSearchGraph{ mCollisionMap, mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }
 {
 	if (loadAssets() == false)
@@ -151,8 +151,8 @@ mSearchGraph{ mCollisionMap, mMapTexture.getTextureWidth(), mMapTexture.getTextu
 	// player.addComponent<BehaviorComponent>(&mCollisionMap, &player, 3500.f, 500.f, 7000.f);
 	player.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
 	player.addComponent<CameraComponent>(mWindow.get());
-	//sob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
-	player.addComponent<SharedTextureComponent<int>>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.svg");
+	//player.addComponent<TextureComponent>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.svg");
+	player.addComponent<SharedTextureComponent<int>>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.png");
 	player.addComponent<MapCollisionComponent>(mCollisionMap);
 
 

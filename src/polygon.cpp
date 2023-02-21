@@ -357,7 +357,7 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
     std::vector<ConvexPolygon> triangles;   // Array to be returned
 
      // Try every consecutive trio of vertices start is arbitrary
-    auto middle = Circulator{ vertices, (int)vertices.size() - 1 };
+    auto middle = Circulator{ vertices, static_cast<int>(vertices.size()) - 1 };
 
     while (vertices.size() > 3)
     {      

@@ -31,7 +31,7 @@
 game polgon testing code:
 int x = player.getComponent<CameraComponent>().getCamera().x;
 	int y = player.getComponent<CameraComponent>().getCamera().y;
-	SDL_FRect oof{ player.getComponent<MechanicalComponent>().getCollisionBox() };
+	SDL_FRect oof{ player.getComponent<MechanicalComponent>().getCollisionMesh() };
 	oof.x -= x;
 	oof.y -= y;
 
@@ -44,7 +44,7 @@ int x = player.getComponent<CameraComponent>().getCamera().x;
 	};
 
 	MechanicalComponent& mechComp = player.getComponent<MechanicalComponent>();
-	const SDL_FRect& collisionBox = mechComp.getCollisionBox();
+	const SDL_FRect& collisionBox = mechComp.getCollisionMesh();
 
 	// test
 	std::vector<Vec> vertices1{ Vec{collisionBox.x, collisionBox.y}, Vec{collisionBox.x + collisionBox.w, collisionBox.y},
@@ -164,8 +164,8 @@ int getDistance(const MapInternals::Region* startTile, const MapInternals::Regio
 
 int Pathfinder::getDistance(const Tile* startTile, const Tile* endTile) const
 {
-    const SDL_Rect* start = startTile->getCollisionBox();
-    const SDL_Rect* end = endTile->getCollisionBox();
+    const SDL_Rect* start = startTile->getCollisionMesh();
+    const SDL_Rect* end = endTile->getCollisionMesh();
 
     int deltaX = abs(start->x - end->x) / TILE_SIDE_LENGTH;
     int deltaY = abs(start->y - end->y) / TILE_SIDE_LENGTH;

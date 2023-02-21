@@ -22,7 +22,6 @@ public:
 	static bool isIntersecting(const Rect& a, const Rect& b);
 	static Rect combine(const Rect& a, const Rect& b);
 
-
 	float x = 0.f;
 	float y = 0.f;
 	float w = 0.f;
@@ -58,9 +57,6 @@ public:
 	* A float representing the degrees to rotate by/to. The number must be in the
 	* interval [-360, 360], otherwise the methods will throw an std::invalid_argument
 	* exception.
-	*
-	* Output:
-	* The polygon will rotate accordingly.
 	*/
 	void rotateBy(float degrees);
 	void rotateTo(float degrees);
@@ -75,12 +71,6 @@ public:
 	* After the transformation, the polygon will be checked if it still satisfies
 	* the requirements of the class, otherwise the method will throw an std::invalid_argument
 	* exception.
-	* 
-	* Input:
-	* A float representing the offset distance.
-	*
-	* Output:
-	* The transformed polygon.
 	*/
 	Polygon offsetVerticesBy(float distance) const;
 
@@ -99,12 +89,6 @@ public:
 	/**
 	* Description:
 	* Breaks the polygon up into triangles via the ear clipping method.
-	*
-	* Input:
-	* This polygon class.
-	*
-	* Output:
-	* A vector of triangles (as convex polygons).
 	*/
 	std::vector<ConvexPolygon> triangulate() const;
 
@@ -112,10 +96,6 @@ public:
 	* Description:
 	* Determines the the winding order of the polygon's vertices
 	* based on the sign of the net area under the polygon's edges.
-	* Note that the polygon can be a line or even a single vertex.
-	*
-	* Input:
-	* A vector of vertices.
 	*
 	* Output:
 	* A boolean, true meaning the polygon is clockwise, and
@@ -129,9 +109,6 @@ public:
 	* Uses vector math to check if any of the polygon's edges
 	* intersect each other.
 	*
-	* Input:
-	* A vector of vertices.
-	*
 	* Output:
 	* A boolean, true meaning the polygon self-intersects, and
 	* false meaning the converse.
@@ -143,12 +120,6 @@ public:
 	* Converts a set of vertices into edges, where an edge a pair
 	* of vectors. The first vector is the offset, and the second 
 	* is the edge itself.
-	*
-	* Input:
-	* A vector of vertices.
-	*
-	* Output:
-	* A vector of pairs.
 	*/
 	static std::vector<std::pair<Vec, Vec>> getEdges(const std::vector<Vec>& vertices);
 
@@ -156,9 +127,6 @@ public:
 	* Description:
 	* Seachs through the vertices untill the first
 	* collinear vertex.
-	*
-	* Input:
-	* A vector of vertices.
 	*
 	* Output:
 	* A bool, true means the vertices contain a 
@@ -176,12 +144,6 @@ public:
 	* Pre-conditions:
 	* The list of vertices must be seperated by atleast 1 space, and the last character cannot be a space.
 	* The SVG polygons must satisfy the rules of the Polygon class, otherwise the constructor will throw an exception.
-	*
-	* Input:
-	* A path to an SVG file.
-	*
-	* Output:
-	* A vector of polygons.
 	*/
 	static std::vector<Polygon> readSvgPolygons(const char* pathToSVG);
 	static Polygon readSvgPolygon(const char* pathToSVG);
