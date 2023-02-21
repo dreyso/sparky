@@ -150,7 +150,7 @@ void Texture::draw(int x, int y, const SDL_Rect* crop, double angle, SDL_Point* 
 			printf("Cropped area does not intersect with texture to be drawn\n");
 			return;
 		}
-		// GET WHITE BACKGROUND!!!
+
 		renderArea.w = tailoredCrop.w;
 		renderArea.h = tailoredCrop.h;
 		

@@ -8,9 +8,13 @@
 
 #include <SDL.h>
 
+#define TO_INT(floatVal) (static_cast<int>(roundf(floatVal)))
+#define GET_MESH(mOwner) (mOwner->getComponent<MechanicalComponent>().getCollisionMesh())
+
 class TextureComponent : public Component
 {
 public:
+	// Constructors assume that the texture starts at the origin and the collision mesh has not moved
 	TextureComponent() = delete;
 	TextureComponent(Entity* owner, const SDL_FRect& camera, Texture&& texture);
 	TextureComponent(Entity* owner, const SDL_FRect& camera, SDL_Renderer& defaultRenderer, std::string pathOrText, TTF_Font* defaultFont = nullptr, SDL_Color* textColor = nullptr);
@@ -19,7 +23,6 @@ public:
 	void draw() override;
 
 private:
-	void initOffset();
 
 	Texture mTexture;
 
@@ -34,22 +37,24 @@ template<typename EntityType>
 class SharedTextureComponent : public Component
 {
 public:
+	// Constructors assume that the texture starts at the origin and the collision mesh has not moved
 	SharedTextureComponent() = delete;
 
-	SharedTextureComponent(Entity* owner, const SDL_FRect& camera, Texture&& texture) : Component{ owner }, mCamera{ &camera }
+	SharedTextureComponent(Entity* owner, const SDL_FRect& camera, Texture&& texture) : Component{ owner }, 
+		mOffsetFromPos{ -1 * GET_MESH(mOwner).getPos() }, mCamera{ &camera }
 	{
 		mTexture.reset(new Texture{ std::move(texture) });
-		initOffset();
 	}
 
-	SharedTextureComponent(Entity* owner, const SDL_FRect& camera, SDL_Renderer& defaultRenderer, std::string pathOrText, TTF_Font* defaultFont = nullptr, SDL_Color* textColor = nullptr) : Component{ owner }, mCamera{ &camera }
+	SharedTextureComponent(Entity* owner, const SDL_FRect& camera, SDL_Renderer& defaultRenderer, std::string pathOrText, TTF_Font* defaultFont = nullptr, SDL_Color* textColor = nullptr) 
+		: Component{ owner }, mOffsetFromPos{ -1 * GET_MESH(mOwner).getPos() }, mCamera{ &camera }
 	{
 		mTexture.reset(new Texture{ &defaultRenderer, pathOrText, defaultFont, textColor });
-		initOffset();
 	}
 
 	// Only useable for non-first objects
-	SharedTextureComponent(Entity* owner, const SDL_FRect& camera) : Component{ owner }, mCamera{ &camera }
+	SharedTextureComponent(Entity* owner, const SDL_FRect& camera) : Component{ owner }, 
+	mOffsetFromPos{ -1 * GET_MESH(mOwner).getPos() }, mCamera{ &camera }
 	{
 		// Throw error if this is the first object of this class type
 		if(mObjectCount == 0)
@@ -68,34 +73,21 @@ public:
 		--mObjectCount;
 	}
 
-	void initOffset()
-	{
-		// Get collision box from mechanical component
-		auto& collisionBox = mOwner->getComponent<MechanicalComponent>().getCollisionBox();
-
-		// Get the rectangular hull of the polygon (will act as the dest rect of the texture)
-		auto rect = collisionBox.getRectHull();
-
-		// Store the relative location of the upper-left corner of the texture relative to entity position
-		mOffsetFromPos = rect.getPos() - collisionBox.getPos();
-	}
-
 	void draw() override
 	{
-		// Get collision box from mechanical component
-		auto& collisionBox = mOwner->getComponent<MechanicalComponent>().getCollisionBox();
-		auto& entityPos = collisionBox.getPos();
-		auto drawPos = entityPos + mOffsetFromPos;
+		// Get collision mesh from mechanical component
+		auto& collisionMesh = GET_MESH(mOwner);
+		auto& entityPos = collisionMesh.getPos();
 
 		// Render the entity relative to the camera
-		int screenPosX = static_cast<int>(roundf(drawPos.getX() - mCamera->x));
-		int screenPosY = static_cast<int>(roundf(drawPos.getY() - mCamera->y));
+		int drawPosX = TO_INT(entityPos.getX() + mOffsetFromPos.getX() - mCamera->x);
+		int drawPosY = TO_INT(entityPos.getY() + mOffsetFromPos.getY() - mCamera->y);
 
-		// Center of rotation
-		SDL_Point center{ static_cast<int>(roundf(entityPos.getX())), static_cast<int>(roundf(entityPos.getY())) };
+		// Center of rotation (relative to texture position)
+		SDL_Point center{ TO_INT(-mOffsetFromPos.getX()),  TO_INT(-mOffsetFromPos.getY()) };
 
 		// Draw
-		mTexture->draw(screenPosX, screenPosY, nullptr, collisionBox.getRotAngle(), &center);
+		mTexture->draw(drawPosX, drawPosY, nullptr, static_cast<double>(collisionMesh.getRotAngle()), &center);
 	}
 
 private:
