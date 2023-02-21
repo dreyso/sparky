@@ -113,7 +113,9 @@ void Polygon::swap(Polygon& other) noexcept
     mAABB_Offset.swap(other.mAABB_Offset);
 }
 
-Polygon::Polygon(const Polygon& other) : mAbsoluteVertices{ other.mAbsoluteVertices }, mRelativeVertices{ other.mRelativeVertices }, mPos{ other.mPos }, mRotAngle{ other.mRotAngle }{}
+Polygon::Polygon(const Polygon& other) 
+    : mAbsoluteVertices{ other.mAbsoluteVertices }, mRelativeVertices{ other.mRelativeVertices }, 
+    mPos{ other.mPos }, mRotAngle{ other.mRotAngle }, mAABB{ other.mAABB }, mAABB_Offset{ other.mAABB_Offset }{}
 
 Polygon::Polygon(Polygon&& other) noexcept : Polygon()
 {
