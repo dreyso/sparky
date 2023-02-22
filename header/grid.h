@@ -17,7 +17,7 @@ public:
         mRegionSideLength = regionSideLength;
 
         // Set the region's collision box
-        mCollisionBox.set(static_cast<float>(x), static_cast<float>(y), static_cast<float>(x + regionSideLength), static_cast<float>(y + regionSideLength));
+        mCollisionBox.set(static_cast<float>(x), static_cast<float>(y), static_cast<float>(regionSideLength), static_cast<float>(regionSideLength));
     }
 
     // Checks if a point on the region, edges count
@@ -88,7 +88,7 @@ public:
     // Checks if a point on the grid, edges count
     bool isPointOnGrid(const Vec& point) const
     {
-        return !(point.getX() <= 0.f || point.getX() >= static_cast<float>(mGridWidth) || point.getY() <= 0.f || point.getY() >= static_cast<float>(mGridHeight));
+        return !(point.getX() < 0.f || point.getX() >= static_cast<float>(mGridWidth) || point.getY() < 0.f || point.getY() >= static_cast<float>(mGridHeight));
     }
 
     int getRows() const
