@@ -656,7 +656,7 @@ bool ConvexPolygon::containsPoint(const Vec& point) const
     {
         // Cross each edge vector with a vector that points from the vertex to the query point
         // if the cross product is not greater than 0, then the point is outside of the polygon
-        if (!(edges[i].second.cross(point - vertices[i]) > 0.f))
+        if (!goingRight(edges[i].second, point - vertices[i]))
             return false;
     }
     // All of the cross products were less than or equal to 0, so the point is inside the polygon
