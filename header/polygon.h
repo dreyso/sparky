@@ -28,6 +28,22 @@ public:
 	float h = 0.f;
 };
 
+	/**
+	* Description:
+	* Moves every vertice by the specified distance. The offset spans the line that
+	* bisects the angle the vertex forms. As a result, the position of the polygon
+	* may change and some vertices may be deleted.
+	*
+	* Post-conditions:
+	* After the transformation, the polygon will be checked if it still satisfies
+	* the requirements of the class, otherwise the method will throw an std::invalid_argument
+	* exception.
+	*/
+
+void offsetVerticesBy(std::vector<Vec>& vertices, float distance);
+
+std::vector<Vec> offsetVerticesBy(const std::vector<Vec>& vertices, float distance);
+
 class ConvexPolygon;
 
 class Polygon
@@ -61,19 +77,6 @@ public:
 	void rotateBy(float degrees);
 	void rotateTo(float degrees);
 	
-	/**
-	* Description:
-	* Moves every vertice by the specified distance. The offset spans the line that
-	* bisects the angle the vertex forms. As a result, the position of the polygon
-	* may change and some vertices may be deleted.
-	*
-	* Post-conditions:
-	* After the transformation, the polygon will be checked if it still satisfies
-	* the requirements of the class, otherwise the method will throw an std::invalid_argument
-	* exception.
-	*/
-	Polygon offsetVerticesBy(float distance) const;
-
 	const Vec& getPos() const;
 
 	float getRotAngle() const;
@@ -156,7 +159,7 @@ protected:
 
 	// Checks if the the current vector is to the left of the next vector
 	// Required for convex vertices
-	bool goingRight(const Vec& current, const Vec& next) const;
+	static bool goingRight(const Vec& current, const Vec& next);
 
 private:
 	void integrityCheck();
@@ -196,12 +199,9 @@ public:
 
 	~ConvexPolygon() = default;
 
-	void offsetVerticesBy(float distance);
-
 	static ConvexPolygon rectToPolygon(const Rect& rect);
 
 	bool containsPoint(const Vec& point) const;
-
 
 	// Add only unique components of a solution vector
 	static void mergeResolution(Vec& base, const Vec& toAdd);
@@ -218,7 +218,7 @@ private:
 	ConvexPolygon() = default;
 
 	// Used by ctor to check if the polygon is convex, also checks for collinear edges, self intersections, and a clockwise winding order
-	bool isConvex();
+	static bool isConvex(const std::vector<Vec>& vertices);
 
 	// Returns a list of the edges of the polygon rotated 90 degrees
 	std::vector<Vec> getCollisionAxi() const;

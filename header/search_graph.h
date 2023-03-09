@@ -38,30 +38,13 @@ namespace GraphInternals
         // A list of all of the accessible route nodes from this node
         std::vector<Node*> mNeighbours;
     };
-
-    // A sqaure
-    class NodeSet : public Region
-    {
-    public:
-        NodeSet() = default;
-        ~NodeSet() = default;
-
-        void setNodes(const std::vector<Node*>& nodes);
-        void setNodes(std::vector<Node*>&& nodes);
-        const std::vector<Node*>& getNodes() const;
-
-    private:
-        // Accessible nodes in this region
-        std::vector<Node*> mNodes;
-    };
-
 }
 
 class SearchGraph
 {
 public:
     SearchGraph() = delete;
-    SearchGraph(const CollisionMap& collisionMap, int SVG_Width, int SVG_Height);
+    SearchGraph(const CollisionMap& collisionMap);
     ~SearchGraph();
 
     // Creates a sequence of points connecting 2 locations
@@ -77,10 +60,9 @@ private:
     // Finds and returns the nearest, accessible nodes
     std::vector<GraphInternals::Node*> findNearestNodes(const Vec& point, int minCount);
 
-    // Build graph and grid
+    // Build graph
     void buildGraph();
     void connectGraph();
-    void assignGrid();
 
     float getDistance(const Vec& startPoint, const Vec& endPoint) const;
     float getSquaredDistance(const Vec& startPoint, const Vec& endPoint) const;
@@ -97,8 +79,5 @@ private:
 
     // A list of all of the nodes in the graph
     std::vector<GraphInternals::Node> mNodes;
-
-    // Partitions nodes into regions in a grid
-    Grid<GraphInternals::NodeSet> mNodesGrid;
 };
 

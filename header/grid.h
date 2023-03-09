@@ -155,7 +155,9 @@ public:
         if (lastCol >= mCols) lastCol = mCols - 1;
 
         std::vector<const RegionType*> intersectingRegions;
-        intersectingRegions.reserve(static_cast<int>(roundf(AABB.w * AABB.h / powf(static_cast<float>(mRegionSideLength), 2.f))));
+
+        // Find AABBs area in terms of the region's dimensions
+        intersectingRegions.reserve(static_cast<int>(roundf(AABB.w * AABB.h / static_cast<float>(pow(mRegionSideLength, 2)))));
 
         // Iterate over every region touched by the AABB
         for (int iRow = firstRow; iRow <= lastRow; ++iRow)

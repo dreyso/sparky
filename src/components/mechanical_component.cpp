@@ -18,7 +18,7 @@ void MechanicalComponent::update(float deltaTime, const Vec& accel)
         // Update rotation only if velocity hasn't been truncated
         mCollisionMesh.rotateTo(atan2(mVel.getY(), mVel.getX()) * (180.f / static_cast<float>(M_PI)));
     }
-    
+
     // Update position
     mCollisionMesh.moveBy(mVel * deltaTime);
 }

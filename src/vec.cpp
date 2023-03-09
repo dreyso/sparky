@@ -4,6 +4,7 @@
 #include <utility>
 #include <tuple>
 #include <stdexcept>
+#include <cmath>
 
 const float EQUIVALENCE_THRESHOLD = 0.01f;
 
@@ -94,8 +95,8 @@ float Vec::ratioProjectOn(const Vec& target) const
 {
 	if (target.isZeroVector())
 		throw(std::runtime_error{ "Error: Cannot project on the zero vector\n" });
-
-	return (*this * target) / powf(target.getMagnitude(), 2.f);
+	
+	return (*this * target) / static_cast<float>(pow(target.getMagnitude(), 2));
 }
 
 Vec Vec::projectOn(const Vec& target) const
@@ -199,23 +200,22 @@ Vec Vec::operator*(const Matrix& matrix) const
 {
 	float returnX = matrix[0][0] * mX + matrix[0][1] * mY;
 	float returnY = matrix[1][0] * mX + matrix[1][1] * mY;
-	return Vec{returnX, returnY};
+	return Vec{ returnX, returnY };
 }
 
 // Misc
 void Vec::normalize()
 {
-	auto mag = getMagnitude();
-	if (mag == 0.f)
+	if (isZeroVector())
 		throw(std::runtime_error{ "Error: Attempted to normalize zero vector\n" });
 
 	// Divide this vector by its magnitude
-	*this /= mag;
+	*this /= getMagnitude();
 }
 
 float Vec::getMagnitude() const
 {
-	return sqrtf(powf(mX, 2.f) + powf(mY, 2.f));
+	return sqrtf(static_cast<float>(pow(mX, 2) + pow(mY, 2)));
 }
 
 std::tuple<Solution, Vec, Vec> Vec::findIntersection(const Vec& A, const Vec& a, const Vec& B, const Vec& b)

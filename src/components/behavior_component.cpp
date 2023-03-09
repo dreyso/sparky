@@ -7,6 +7,8 @@
 #include "../../header/vec.h"
 #include "../../header/polygon.h"
 
+#include <cmath>
+
 
 
 BehaviorComponent::BehaviorComponent(Entity* owner, CollisionMap* map, SearchGraph* pathfinder, const Entity* target, float accelForce, float maxVel, float dragCap)

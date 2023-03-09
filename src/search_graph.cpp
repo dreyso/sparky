@@ -10,17 +10,14 @@
 #include <stack>
 #include <algorithm>
 #include <cmath>
-#include <assert.h>
+#include <cassert>
 
+#define NDEBUG
 
-static const int GRID_SCALE = 100;
-#define IS_SCALEABLE(width, height) ((width + height) % GRID_SCALE == 0)
+#define RAYCAST_WIDTH 1.f
+#define RAYCAST_LENGTH 40.f
 
-#define DIAGONAL_DISTANCE 14.f
-#define ACROSS_DISTANCE 10.f
-#define RAYCAST_WIDTH 40.f
-#define RAYCAST_LENGTH 10.f
-
+#define VERTICE_OFFSET 20.f
 #define NODE_BUFFER 10
 #define OPEN_SET_BUFFER 30
 //#define GREEDY_ASTAR
@@ -38,31 +35,11 @@ void Node::reset()
 
 float Node::getFcost() const { return mGcost + mHcost; }
 
-void NodeSet::setNodes(const std::vector<Node*>& nodes)
+SearchGraph::SearchGraph(const CollisionMap& collisionMap) : mCollisionMap{ collisionMap }
 {
-    mNodes = nodes;
-}
-
-void NodeSet::setNodes(std::vector<Node*>&& nodes)
-{
-    mNodes = std::move(nodes);
-}
-
-const std::vector<Node*>& NodeSet::getNodes() const
-{
-    return mNodes;
-}
-
-SearchGraph::SearchGraph(const CollisionMap& collisionMap, int SVG_Width, int SVG_Height)
-    : mCollisionMap{ collisionMap }, mNodesGrid{ SVG_Width / GRID_SCALE, SVG_Height / GRID_SCALE, GRID_SCALE }
-{
-    // Check that the dimensions of the graph and regions are compatible
-    assert(IS_SCALEABLE(SVG_Width, SVG_Height));
-
     // Build pathfinding graphs
     buildGraph();
     connectGraph();
-    assignGrid();
 }
 
 SearchGraph::~SearchGraph() {}
@@ -73,6 +50,10 @@ bool SearchGraph::isAccessible(const Vec& startPoint, const Vec& destPoint)
 
     // Get vector between start and dest
     Vec orthagonal{ destPoint - startPoint };
+
+    // If starting location is at the destination
+    if (orthagonal.isZeroVector())
+        return true;
 
     // Make it orthagonal to itself
     orthagonal *= Matrix{ 0, -1, 1, 0 };
@@ -109,7 +90,7 @@ bool SearchGraph::isAccessible(const Vec& startPoint, const Vec& destPoint)
     while (!mCollisionMap.isPointColliding(currentA) && !mCollisionMap.isPointColliding(currentB))
     {
         // Reached destination, success (if A finished, then so did B)
-        if ((shiftedDestPointA - currentA).getMagnitude() <= 10.f)
+        if ((shiftedDestPointA - currentA).getMagnitude() <= RAYCAST_LENGTH)
             return true;
 
         // Move towards destination at constant rate
@@ -121,105 +102,15 @@ bool SearchGraph::isAccessible(const Vec& startPoint, const Vec& destPoint)
 
 std::vector<Node*> SearchGraph::findNearestNodes(const Vec& point, int minCount)
 {
+    std::vector<Node*> nearestNodes;
+    nearestNodes.reserve(10);
 
-    std::vector<std::pair<Node*, float>> nearestNodes; 
-    nearestNodes.reserve(minCount);
-
-    // Go through a list of nodes and update the list of nearest
-    auto addNodes = [&](const std::vector<Node*>& nodes)
+    for (int i = 0; i < mNodes.size(); ++i)
     {
-        for (auto& iNode : nodes)
-        {
-            // Get sqaured distance
-            float distance = getSquaredDistance(point, iNode->mPoint);
-
-            // Check if is accessible
-            if (isAccessible(point, iNode->mPoint))
-                nearestNodes.push_back(std::make_pair(iNode, distance));
-        }
-    };
-
-    // Get the region(s) the point falls on
-    auto regions = mNodesGrid.getRegionsUnderPoint(point);
-    Rect combo = regions[0]->getCollisionBox();
-
-    // Combine the AABB's of the regions
-    for (int i = 1; i < regions.size(); ++i)
-        combo = Rect::combine(combo, regions[i]->getCollisionBox());
-
-    // Search the starting regions
-    for (auto iRegion : regions)
-        addNodes(iRegion->getNodes());
-
-    // Get the side length of a region in the grid
-    int length = mNodesGrid.getRegionSideLength();
-
-    // Determine 4 sides of the rect on the grid
-    int firstRow = (static_cast<int>(combo.y) / length) - 1;
-    int lastRow = (static_cast<int>(combo.y + combo.h) / length) + 1;
-
-    int firstCol = (static_cast<int>(combo.x) / length) - 1;
-    int lastCol = (static_cast<int>(combo.x + combo.w) / length) + 1;
-
-    // Keep searching until enough nodes are found
-    while (nearestNodes.size() < minCount)
-    {
-        // Left
-        if (firstCol > 0)
-        {
-            firstCol -= 1;
-
-            // Iterate over everything on the new col
-            for (int iRow = firstRow; iRow <= lastRow; ++iRow)
-                addNodes(mNodesGrid[iRow][firstCol].getNodes());
-        }
-
-        // Up
-        if (firstRow > 0)
-        {
-            firstRow -= 1;
-
-            // Iterate over everything on the new row
-            for (int iCol = firstCol; iCol <= lastCol; ++iCol)
-                addNodes(mNodesGrid[firstRow][iCol].getNodes());
-        }
-
-        // Right
-        if (lastCol < mNodesGrid.getCols() - 1)
-        {
-            lastCol += 1;
-
-            // Iterate over everything on the new col
-            for (int iRow = firstRow; iRow <= lastRow; ++iRow)
-                addNodes(mNodesGrid[iRow][lastCol].getNodes());
-        }
-
-        // Down
-        if (lastRow < mNodesGrid.getRows() - 1)
-        {
-            lastRow += 1;
-
-            // Iterate over everything on the new row
-            for (int iCol = firstCol; iCol <= lastCol; ++iCol)
-                addNodes(mNodesGrid[lastRow][iCol].getNodes());
-        }
+        if (isAccessible(point, mNodes[i].mPoint))
+            nearestNodes.push_back(&mNodes[i]);
     }
-
-    // Sort the nodes by distance
-    auto cmp = [](std::pair<Node*, float>& arg1, std::pair<Node*, float>& arg2)
-    {
-        return arg1.second < arg2.second;
-    };
-    std::sort(nearestNodes.begin(), nearestNodes.end(), cmp);
-    // Get rid of duplicate nodes
-    nearestNodes.erase(unique(nearestNodes.begin(), nearestNodes.end()), nearestNodes.end());
-
-    // Create and return a new vector without distances
-    std::vector<Node*> sortedNearestNodes(nearestNodes.size(), nullptr);
-    for (int i = 0; i < nearestNodes.size(); ++i)
-        sortedNearestNodes[i] = nearestNodes[i].first;
-    
-    return sortedNearestNodes;
+    return nearestNodes;
 }
 
 void SearchGraph::buildGraph()
@@ -228,11 +119,14 @@ void SearchGraph::buildGraph()
     for (auto& iPolygon : mCollisionMap.getPolygons())
     {
         // Expand each shape
-        Polygon temp{ iPolygon.offsetVerticesBy(10.f) };
+        Polygon temp{ offsetVerticesBy(iPolygon.getVertices(), VERTICE_OFFSET) };
 
-        // Add the new shifted vertices into the graph as nodes
+        // Add the new shifted vertices into the graph as nodes (if they're not colliding)
         for (auto& iVertice : temp.getVertices())
-            mNodes.push_back(Node{ iVertice });
+        {
+            if (!mCollisionMap.isPointColliding(iVertice))
+                mNodes.push_back(Node{ iVertice });
+        }
     }
 }
 
@@ -246,30 +140,10 @@ void SearchGraph::connectGraph()
             // If there a path between the nodes, "neighbor" them
             if (isAccessible(mNodes[iNode].mPoint, mNodes[jNode].mPoint))
             {
+                mNodes[iNode].mNeighbours.reserve(3);
                 mNodes[iNode].mNeighbours.push_back(&mNodes[jNode]);
                 mNodes[jNode].mNeighbours.push_back(&mNodes[iNode]);
             }
-        }
-    }
-}
-
-void SearchGraph::assignGrid()
-{
-    // Set the regions
-    for (int iRow = 0; iRow < mNodesGrid.getRows(); ++iRow)
-    {
-        for (int iCol = 0; iCol < mNodesGrid.getCols(); ++iCol)
-        {
-            std::vector<Node*> collidedNodes;
-
-            // Find all nodes that lie in this region
-            for (auto& iNode : mNodes)
-            {
-                if (mNodesGrid[iRow][iCol].isPointOnRegion(iNode.mPoint))
-                    collidedNodes.push_back(&iNode);
-            }
-            // Add all colliding nodes to the region
-            mNodesGrid[iRow][iCol].setNodes(collidedNodes);
         }
     }
 }
@@ -325,12 +199,7 @@ bool SearchGraph::heuristic(const Node* op2, const Node* op1)
 
 bool SearchGraph::findPath(const Vec& start, const Vec& dest, std::stack<Vec>& path)
 {
-    // check if the points in graph bounds
-    if (mNodesGrid.isPointOnGrid(start) && mNodesGrid.isPointOnGrid(dest))
-        return false;
-
-    // Check if the points are directly accessible
-    else if (isAccessible(start, dest))
+    if (isAccessible(start, dest))
     {
         path.push(dest);
         return true;
@@ -413,7 +282,7 @@ bool SearchGraph::findPath(const Vec& start, const Vec& dest, std::stack<Vec>& p
             {
                 neighbour->mGcost = newCostToNeighbour;
                 neighbour->mHcost = getDistance(neighbour->mPoint, lastNode.mPoint);
-                neighbour->mParent = &lastNode;
+                neighbour->mParent = currentNode;
                 if (!neighbourIsOpen)
                 {
                     openSet.push_back(neighbour);

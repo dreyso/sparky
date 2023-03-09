@@ -3,6 +3,7 @@
 #include "../../header/components/component.h"
 #include "../../header/util.h"
 
+#include <cmath>
 #include <SDL.h>
 
 
@@ -10,7 +11,7 @@ KeyPressAccelComponent::KeyPressAccelComponent(Entity* owner, SDL_Event* event, 
 	: Component{ owner }, mEvent{ event }, mAccelForce{ accelForce }, mMaxVel{ maxVel }, mDragCap{ dragCap }
 {
 	// Get diagonal acceleration
-	float diagonalAccelForce = sqrtf(powf(mAccelForce, 2.f) + powf(mAccelForce, 2.f));
+	float diagonalAccelForce = sqrtf(static_cast<float>(pow(mAccelForce, 2) + pow(mAccelForce, 2)));
 	
     // Normalize it
 	mDiagonalAccelForce = (mAccelForce / diagonalAccelForce) * mAccelForce;

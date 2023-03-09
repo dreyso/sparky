@@ -5,10 +5,10 @@
 #include "../header/grid.h"
 
 #include <vector>
-#include <assert.h>
+#include <cassert>
 
 
-static const int GRID_SCALE = 100;
+static const int GRID_SCALE = 150;
 #define IS_SCALEABLE(width, height) ((width + height) % GRID_SCALE == 0)
 
 using namespace MapInternals;
@@ -75,7 +75,7 @@ CollisionMap::CollisionMap(const char* pathToSVG, int SVG_Width, int SVG_Height)
 Vec CollisionMap::resolveCollisions(const ConvexPolygon& entity) const
 {
     auto& entityAABB = entity.getAABB();
-    Vec solution;
+    Vec solution{ 0.f, 0.f };
 
     auto intersectedRegions = mTriangleGrid.getRegionsIntersectingRect(entity.getAABB());
 
@@ -103,7 +103,7 @@ bool CollisionMap::isPointColliding(const Vec& point) const
     auto regions = mTriangleGrid.getRegionsUnderPoint(point);
 
     // Iterate over the regions under the point
-    for (auto iRegion : regions)
+    for (auto& iRegion : regions)
     {
         // Check if the point falls into any triangles in the region
         for (auto& triangle : iRegion->getCollisionTriangles())

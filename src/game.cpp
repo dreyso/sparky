@@ -136,7 +136,7 @@ void GameLoader::close()
 
 Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/demo.png" }, 
 mCollisionMap{ "assets/images/demo.svg", mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }, 
-mSearchGraph{ mCollisionMap, mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }
+mSearchGraph{ mCollisionMap }
 {
 	if (loadAssets() == false)
 		exit(-1);
@@ -151,22 +151,23 @@ mSearchGraph{ mCollisionMap, mMapTexture.getTextureWidth(), mMapTexture.getTextu
 	// player.addComponent<BehaviorComponent>(&mCollisionMap, &player, 3500.f, 500.f, 7000.f);
 	player.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
 	player.addComponent<CameraComponent>(mWindow.get());
-	//player.addComponent<TextureComponent>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.svg");
-	player.addComponent<SharedTextureComponent<int>>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.png");
+	player.addComponent<TextureComponent>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.png");
+	//player.addComponent<SharedTextureComponent<int>>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.png");
 	player.addComponent<MapCollisionComponent>(mCollisionMap);
 
 
-	//sob.addComponent<MechanicalComponent>(entityPolygon);
-	//sob.addComponent<BehaviorComponent>(&mCollisionMap, &mSearchGraph, &player, 3500.f, 500.f, 7000.f);
-	//// sob.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
-	//// sob.addComponent<CameraComponent>(mWindow.get());
-	//// sob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
-	//sob.addComponent<SharedTextureComponent<int>>(&player.getComponent<CameraComponent>().getCamera());
+	sob.addComponent<MechanicalComponent>(entityPolygon);
+	sob.addComponent<BehaviorComponent>(&mCollisionMap, &mSearchGraph, &player, 3500.f, 400.f, 7000.f);
+	sob.addComponent<MapCollisionComponent>(mCollisionMap);
+	// sob.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
+	// sob.addComponent<CameraComponent>(mWindow.get());
+	sob.addComponent<TextureComponent>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.png");
+	//sob.addComponent<SharedTextureComponent<int>>(player.getComponent<CameraComponent>().getCamera());
 
 	//bob.addComponent<MechanicalComponent>(entityPolygon);
 	//bob.addComponent<BehaviorComponent>(&mCollisionMap, &mSearchGraph, &sob, 3500.f, 500.f, 7000.f);
-	//bob.addComponent<SharedTextureComponent<int>>(&player.getComponent<CameraComponent>().getCamera());
-	////bob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
+	//bob.addComponent<SharedTextureComponent<int>>(player.getComponent<CameraComponent>().getCamera());
+	//bob.addComponent<TextureComponent>(&mPlayer.getCamera(), mRenderer.get(), "assets/images/triangle.png");
 }
 
 Game::~Game()

@@ -12,7 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include <assert.h>
+#include <cassert>
 
 
 void Rect::swap(Rect& other)
@@ -90,6 +90,40 @@ Rect Rect::combine(const Rect& a, const Rect& b)
     combined.h = std::max(a.x + a.h, b.x + b.h);
 
     return combined;
+}
+
+void offsetVerticesBy(std::vector<Vec>& vertices, float distance)
+{
+    for (int iMiddle = 0; iMiddle < vertices.size(); ++iMiddle)
+    {
+        auto prev = Circulator{ vertices, iMiddle - 1 };
+        auto middle = Circulator{ vertices, iMiddle };
+        auto next = Circulator{ vertices, iMiddle + 1 };
+
+        // Try every consecutive pair of edges
+        Vec edge1{ *middle - *prev };
+        Vec edge2{ *next - *middle };
+
+        edge1.normalize();
+        edge2.normalize();
+
+        // Get the vector that bisects the angle formed by the edges
+        auto direction = (edge1 + edge2);
+        direction.normalize();
+
+        //  Rotate the direction by -90 deg, the vector points out of the polygon
+        direction *= Matrix{ 0.f, -1.f, 1.f, 0.f };
+
+        // Using the calculated direction and provided distance, offset the relative vertex
+        vertices[iMiddle] += direction * distance;
+    }
+}
+
+std::vector<Vec> offsetVerticesBy(const std::vector<Vec>& vertices, float distance)
+{
+    std::vector<Vec> newVertices{ vertices };
+    offsetVerticesBy(newVertices, distance);
+    return newVertices;
 }
 
 Polygon::Polygon(std::vector<Vec> vertices) : mAbsoluteVertices{ std::move(vertices) }
@@ -469,46 +503,6 @@ void Polygon::rotateBy(float degrees)
         mRotAngle += 360.f;
 }
 
-Polygon Polygon::offsetVerticesBy(float distance) const
-{
-    Polygon transformedPolygon{ *this };
-    auto& absoluteVertices = transformedPolygon.mAbsoluteVertices;
-    auto& relativeVertices = transformedPolygon.mRelativeVertices;
-
-    for (int iMiddle = 0; iMiddle < absoluteVertices.size(); ++iMiddle)
-    {
-        // Try every consecutive pair of edges
-        auto prev = Circulator{ absoluteVertices, iMiddle - 1 };
-        auto middle = Circulator{ absoluteVertices, iMiddle };
-        auto next = Circulator{ absoluteVertices, iMiddle + 1 };
-
-        Vec edge1{ *middle - *prev };
-        Vec edge2{ *next - *middle };
-        
-        edge1.normalize();
-        edge2.normalize();
-
-        // Get the vector that bisects the angle formed by the edges
-        auto direction = (edge1 + edge2);
-        direction.normalize();
-        
-        //  Rotate the direction by -90 deg, the vector points out of the polygon
-        direction *= Matrix{0.f, -1.f, 1.f, 0.f};
-
-        // Using the calculated direction and provided distance, offset the relative vertex
-        relativeVertices[iMiddle] += direction * distance;
-    }
-
-    // Update the absolute vertices to match the relative ones
-    transformedPolygon.updateAbsoluteVertices();
-
-    // Check polygon integrity and set bounding box, position shouldn't change
-    transformedPolygon.integrityCheck();
-    transformedPolygon.setAABB();
-
-    return transformedPolygon;
-}
-
 void Polygon::updateAbsoluteVertices()
 {
     // Absolute vetices are the sum of the polygon's position and its corresponding relative vertices
@@ -558,7 +552,7 @@ void Polygon::updateAABB()
 
 ConvexPolygon::ConvexPolygon(std::vector<Vec> vertices) : Polygon{ std::move(vertices) }
 {
-    if (isConvex() == false)       // Polygon must be convex
+    if (isConvex(getVertices()) == false)       // Polygon must be convex
         throw(std::invalid_argument{ "Error: Concave polygon\n" });
 }
 
@@ -568,7 +562,7 @@ ConvexPolygon::ConvexPolygon(Polygon other) : ConvexPolygon()
     Polygon::swap(other);
 
     // Ensure that the polygon is convex
-    if (isConvex() == false)       
+    if (isConvex(getVertices()) == false)       
         throw(std::invalid_argument{ "Error: Concave polygon\n" });
 }
 
@@ -600,10 +594,8 @@ ConvexPolygon& ConvexPolygon::operator=(std::vector<Vec> vertices)
 
 // Convex means that the current edge vector is to the left of the next one (negative cross product)
 // Note: If the the polygon ends up convex, it is gaureenteed to be clockwise and have no collinear edges.
-bool ConvexPolygon::isConvex()
+bool ConvexPolygon::isConvex(const std::vector<Vec>& vertices)
 {
-    auto& vertices = getVertices();
-
     for (int i = 0; i < vertices.size(); ++i)
     {
         // Get every trio of vertices
@@ -621,15 +613,6 @@ bool ConvexPolygon::isConvex()
     }
    
     return true;
-}
-
-void ConvexPolygon::offsetVerticesBy(float distance)
-{
-    Polygon::offsetVerticesBy(distance);
-
-    // Ensure that the polygon remained convex
-    if (isConvex() == false)       
-        throw(std::invalid_argument{ "Error: Concave polygon\n" });
 }
 
 ConvexPolygon ConvexPolygon::rectToPolygon(const Rect& rect)
@@ -662,7 +645,6 @@ bool ConvexPolygon::containsPoint(const Vec& point) const
     // All of the cross products were less than or equal to 0, so the point is inside the polygon
     return true;
 }
-
 
 // Add only unique components of a solution vector
 void ConvexPolygon::mergeResolution(Vec& base, const Vec& toAdd)
@@ -954,7 +936,7 @@ Polygon Polygon::readSvgPolygon(const char* pathToSVG)
     return Polygon{ std::move(vertices) };
 }
 
-bool Polygon::goingRight(const Vec& current, const Vec& next) const
+bool Polygon::goingRight(const Vec& current, const Vec& next)
 {
     return current.cross(next) < 0.f;
 }
