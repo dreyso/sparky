@@ -44,6 +44,19 @@ struct IdGen {
     }
 };
 
+inline int cycleIndex(int index, int length)
+{
+    if (index < 0)
+    {
+        index %= static_cast<int>(length);
+        index += static_cast<int>(length);
+    }
+    else if (index >= static_cast<int>(length))
+        index %= static_cast<int>(length);
+
+    return index;
+}
+
 // A wrapper class that gives circular behvior to vectors
 // The List class being passed in must have size_t size() and operator[] methods
 template <class List>

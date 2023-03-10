@@ -94,15 +94,37 @@ Rect Rect::combine(const Rect& a, const Rect& b)
 
 void offsetVerticesBy(std::vector<Vec>& vertices, float distance)
 {
-    for (int iMiddle = 0; iMiddle < vertices.size(); ++iMiddle)
+    if (vertices.size() <= 3)
+        return;
+
+    auto calcDirection = [](const Vec& prev, const Vec& middle, const Vec& next) 
     {
-        auto prev = Circulator{ vertices, iMiddle - 1 };
-        auto middle = Circulator{ vertices, iMiddle };
-        auto next = Circulator{ vertices, iMiddle + 1 };
+        Vec edge1{ middle - prev };
+        Vec edge2{ next - middle };
+
+        edge1.normalize();
+        edge2.normalize();
+
+        // Get the vector that bisects the angle formed by the edges
+        auto direction = (edge1 + edge2);
+        direction.normalize();
+
+        //  Rotate the direction by -90 deg, the vector points out of the polygon
+        direction *= Matrix{ 0.f, -1.f, 1.f, 0.f };
+        return direction;
+    };
+
+    // Handle first element being the middle vertex
+    vertices.front() += calcDirection(vertices.back(), vertices.front(), vertices[1]) * distance;
+    
+    for (int iMiddle = 1; iMiddle < vertices.size() - 1; ++iMiddle)
+    {
+        int prev = iMiddle - 1;
+        int next = iMiddle + 1;
 
         // Try every consecutive pair of edges
-        Vec edge1{ *middle - *prev };
-        Vec edge2{ *next - *middle };
+        Vec edge1{ vertices[iMiddle] - vertices[prev] };
+        Vec edge2{ vertices[next] - vertices[iMiddle] };
 
         edge1.normalize();
         edge2.normalize();
@@ -117,6 +139,9 @@ void offsetVerticesBy(std::vector<Vec>& vertices, float distance)
         // Using the calculated direction and provided distance, offset the relative vertex
         vertices[iMiddle] += direction * distance;
     }
+
+    // Handle last element being the middle vertex
+    vertices.back() += calcDirection(vertices[vertices.size() - 2], vertices.back(), vertices.front()) * distance;
 }
 
 std::vector<Vec> offsetVerticesBy(const std::vector<Vec>& vertices, float distance)
@@ -173,15 +198,18 @@ bool Polygon::isClockwise(const std::vector<Vec>& vertices)
 {
     float area = 0.f;
 
-    for (int i = 0; i < vertices.size(); ++i)
+    for (int i = 0; i < vertices.size() - 1; ++i)
     {
-        // Get every adjacent pair of vertices
+        // Get every (but last) adjacent pair of vertices
         Vec 𝙫0{ vertices[i] };
-        Vec 𝙫1{ vertices[(i + 1) % vertices.size()] };
+        Vec 𝙫1{ vertices[i + 1] };
 
         // Find the area under the curve (2x actual area)
         area += (𝙫1.getX() - 𝙫0.getX()) * (𝙫1.getY() + 𝙫0.getY());
     }
+    
+    // Get last adjacent pair of vertices
+    area += (vertices.front().getX() - vertices.back().getX()) * (vertices.front().getY() + vertices.back().getY());
 
     // If area is negative, the vertices are in counterclockwise order
     // If it's 0, the polygon self intersects
@@ -190,32 +218,44 @@ bool Polygon::isClockwise(const std::vector<Vec>& vertices)
 
 bool Polygon::removeCollinearEdges(std::vector<Vec>& vertices)
 {
+    if (vertices.size() < 3)
+        return false;
+
     // Record if a collinear edge has been removed in the loop below
     bool removedEdge = false;
-
-    for (int iMiddle = 0; iMiddle < vertices.size() && vertices.size() >= 3; ++iMiddle)
+    
+    int iFirst = -1;
+    while (iFirst < vertices.size() && vertices.size() >= 3)
     {
         // Get every trio of vertices
-        auto prev = Circulator{ vertices, iMiddle - 1 };
-        auto next = Circulator{ vertices, iMiddle + 1 };
+        ++iFirst;
+        int second = iFirst + 1;
+        int third = iFirst + 2;
 
-        Vec v0{ *prev };
-        Vec v1{ vertices[iMiddle] };
-        Vec v2{ *next };
+        // Wrap second and third vertices
+        if (iFirst > vertices.size() - 3)
+        {
+            iFirst = cycleIndex(iFirst, vertices.size());
+            second = cycleIndex(second, vertices.size());
+            third = cycleIndex(third, vertices.size());
+        }
 
         // Define 2 vectors from the first vertex to the other 2
-        v1 -= v0;
-        v2 -= v0;
+        auto v1{ vertices[second] - vertices[iFirst] };
+        auto v2{ vertices[third] - vertices[iFirst] };
 
         // If any of the cross products are 0, the edges are collinear
         if (v2.cross(v1) == 0.f)
         {
             // Delete the vertex
-            vertices.erase(vertices.begin() + iMiddle);
+            vertices.erase(vertices.begin() + second);
             removedEdge = true;
 
+            // Last element check
+            iFirst = std::min((int) vertices.size() - 1, iFirst);
+
             // Avoid moving forward without checking again
-            --iMiddle;
+            --iFirst;
         }
     }
     return removedEdge;
@@ -399,44 +439,44 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
 
     auto vertices{ mAbsoluteVertices };     // Copy of polygon's vertices
     std::vector<ConvexPolygon> triangles;   // Array to be returned
+    //CircularList<std::vector<Vec>> circVertices{ vertices };
 
      // Try every consecutive trio of vertices start is arbitrary
-    auto middle = Circulator{ vertices, static_cast<int>(vertices.size()) - 1 };
-
+    //auto middle = Circulator{ vertices, static_cast<int>(vertices.size()) - 1 };
+    int iMiddle = -1;
     while (vertices.size() > 3)
     {      
-        ++middle;
-
         // Try next trio
-        auto prev = middle - 1;
-        auto next = middle + 1;
+        iMiddle = cycleIndex(++iMiddle, vertices.size());
+        int prev = cycleIndex(iMiddle - 1, vertices.size());
+        int next = cycleIndex(iMiddle + 1, vertices.size());
 
         // -- Test if the vertex is convex -----------------------------------------
             
-        Vec 𝙫0{ *middle - *prev };
-        Vec 𝙫1{ *next - *middle };
+        Vec 𝙫0{ vertices[iMiddle] - vertices[prev] };
+        Vec 𝙫1{ vertices[next] - vertices[iMiddle] };
       
         // Skip concave angles
         if (!goingRight(𝙫0, 𝙫1))
             continue;
 
         // Define 3rd triangle edge
-        Vec 𝙫2{ *prev - *next };
+        Vec 𝙫2{ vertices[prev] - vertices[next] };
 
         // -- Test if any vertices fall inside the triangle -----------------------------------------
 
         bool found = false;
-        auto current = middle + 2;
+        auto iCurrent = cycleIndex(iMiddle + 2, vertices.size());
 
-        while (!found && current != prev)
+        while (!found && iCurrent != prev)
         {
             // Define 3 vectors point from triangle vertices to current vertex
-            Vec arr[3]{ {*current - *prev}, {*current - *middle}, {*current - *next} };
+            Vec arr[3]{ {vertices[iCurrent] - vertices[prev]}, {vertices[iCurrent] - vertices[iMiddle]}, {vertices[iCurrent] - vertices[next]} };
 
             // Cross each vector with its respective edge vector
             found = (goingRight(𝙫0, arr[0]) && goingRight(𝙫1, arr[1]) && goingRight(𝙫2, arr[2]));
                 
-            ++current;
+            iCurrent = cycleIndex(++iCurrent, vertices.size());
         }
 
         // Skip triangles that contain vertices
@@ -446,13 +486,16 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
         // -- Clip the ear -----------------------------------------
 
         // Add the triangle to the list
-        triangles.emplace_back(std::vector<Vec>{*prev, *middle, *next});
+        triangles.emplace_back(std::vector<Vec>{vertices[prev], vertices[iMiddle], vertices[next]});
 
         // Remove the middle vertex
-        vertices.erase(vertices.begin() + middle.getIndex());
+        vertices.erase(vertices.begin() + iMiddle);
+
+        // Last element check
+        iMiddle = std::min((int) vertices.size() - 1, iMiddle);
 
         // Avoid changing indices
-        middle -= 2;
+        iMiddle -= 1;
     }
 
     // Add the last triangle

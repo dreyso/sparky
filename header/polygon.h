@@ -151,7 +151,6 @@ public:
 	static std::vector<Polygon> readSvgPolygons(const char* pathToSVG);
 	static Polygon readSvgPolygon(const char* pathToSVG);
 
-
 protected:
 
 	// Used in the move constructor
