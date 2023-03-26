@@ -37,7 +37,7 @@ float Node::getFcost() const { return mGcost + mHcost; }
 
 SearchGraph::SearchGraph(const CollisionMap& collisionMap) : mCollisionMap{ collisionMap }
 {
-    // Build pathfinding graphs
+    // Build path-finding graphs
     buildGraph();
     connectGraph();
 }
@@ -55,7 +55,7 @@ bool SearchGraph::isAccessible(const Vec& startPoint, const Vec& destPoint)
     if (orthagonal.isZeroVector())
         return true;
 
-    // Make it orthagonal to itself
+    // Make it orthogonal to itself
     orthagonal *= Matrix{ 0, -1, 1, 0 };
 
     // Normalize it
@@ -156,7 +156,7 @@ float SearchGraph::getDistance(const Vec& startPoint, const Vec& endPoint) const
 
 float SearchGraph::getSquaredDistance(const Vec& startPoint, const Vec& endPoint) const
 {
-    // Return sqaured euclidean distance
+    // Return squared euclidean distance
     Vec temp = (endPoint - startPoint);
     return temp * temp;
 }
@@ -166,7 +166,7 @@ void SearchGraph::createPath(Node* end, std::stack<Vec>& path) const
 {
     const Node* currentNode = end;
 
-    // Trace back untill a node without a parent is reached
+    // Trace back until a node without a parent is reached
     while (currentNode->mParent != nullptr)
     {
         // Push the location of the node on the stack
@@ -271,13 +271,13 @@ bool SearchGraph::findPath(const Vec& start, const Vec& dest, std::stack<Vec>& p
 
         for (auto neighbour : currentNode->mNeighbours)
         {
-            // If neighbour is already closed, skip it
+            // If neighbor is already closed, skip it
             if (closedSet.find(neighbour) != closedSet.end())
                 continue;
 
             float newCostToNeighbour = currentNode->mGcost + getDistance(currentNode->mPoint, neighbour->mPoint);
             bool neighbourIsOpen = find(openSet.begin(), openSet.end(), neighbour) != openSet.end();
-            // If the neighbour is not in the open set or the new cost is cheaper
+            // If the neighbor is not in the open set or the new cost is cheaper
             if (!neighbourIsOpen || newCostToNeighbour < neighbour->mGcost)
             {
                 neighbour->mGcost = newCostToNeighbour;

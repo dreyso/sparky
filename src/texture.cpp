@@ -132,7 +132,7 @@ void Texture::draw(int x, int y, const SDL_Rect* crop, double angle, SDL_Point* 
 	{
 		// -- Tailor the crop -----------------------------------------
 		
-		/**
+		/*
 		* SDL crops textures without any extra space. I.e, if a
 		* crop includes an entire texture and some space around it,
 		* it will only grab the texture, no extra space. This will

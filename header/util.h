@@ -57,7 +57,7 @@ inline int cycleIndex(int index, int length)
     return index;
 }
 
-// A wrapper class that gives circular behvior to vectors
+// A wrapper class that gives circular behavior to vectors
 // The List class being passed in must have size_t size() and operator[] methods
 template <class List>
 class CircularList
@@ -79,7 +79,7 @@ private:
     List& mList;
 };
 
-// A wrapper class that gives circular behvior to vectors
+// A wrapper class that gives circular behavior to vectors
 // The List class being passed in must have size_t size() and operator[] methods
 template <class List>
 class Circulator

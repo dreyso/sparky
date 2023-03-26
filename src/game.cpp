@@ -66,7 +66,7 @@ bool GameLoader::init()
 		return false;
 	}
 
-	// Enable blendng
+	// Enable blending
 	if (SDL_SetRenderDrawBlendMode(mRenderer.get(), SDL_BLENDMODE_BLEND) != 0)
 	{
 		fprintf(stderr, "%s", SDL_GetError());
@@ -132,9 +132,8 @@ void GameLoader::close()
 	IMG_Quit();
 	SDL_Quit();
 }
-//SearchGraph(const CollisionMap& collisionMap, const std::vector<Vec>& points, int SVG_Width, int SVG_Height);
 
-Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/demo.png" }, 
+Game::Game() : GameLoader{}, mMapTexture{ mRenderer.get(), "assets/images/demo3d.png" }, 
 mCollisionMap{ "assets/images/demo.svg", mMapTexture.getTextureWidth(), mMapTexture.getTextureHeight() }, 
 mSearchGraph{ mCollisionMap }
 {
@@ -177,7 +176,7 @@ Game::~Game()
 
 bool Game::loadAssets()
 {
-	// Load fontfont
+	// Load font
 	mFont = TTF_OpenFont("assets/calibri_regular.ttf", 26);
 	if (mFont == nullptr)
 	{
@@ -205,8 +204,6 @@ bool Game::loadAssets()
 
 void Game::handleEvents()
 {
-	if (mPaused == true)
-		printf("lol");
 	// Handle all events
 	while (SDL_PollEvent(&mEvent) != 0 || mPaused)
 	{

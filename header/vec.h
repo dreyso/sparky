@@ -64,7 +64,7 @@ public:
     void normalize();
     float getMagnitude() const;
     
-    /**
+    /*
     * Description:
     * Given 2 vectors, a and b, and their offsets, A and B, finds the type of intersection a and b have (if any),
     * and for point intersections, returns the coordinates of the point. For all other cases, the vector returned is

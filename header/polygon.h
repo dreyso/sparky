@@ -28,9 +28,9 @@ public:
 	float h = 0.f;
 };
 
-	/**
+	/*
 	* Description:
-	* Moves every vertice by the specified distance. The offset spans the line that
+	* Moves every vertex by the specified distance. The offset spans the line that
 	* bisects the angle the vertex forms. As a result, the position of the polygon
 	* may change and some vertices may be deleted.
 	*
@@ -65,7 +65,7 @@ public:
 	void moveBy(const Vec& addToPos);
 	void moveTo(const Vec& pos);
 
-	/**
+	/*
 	* Description:
 	* Rotates the polygon about its centroid by/to the specified amount (degrees).
 	*
@@ -89,15 +89,15 @@ public:
 
 	const std::vector<Vec>& getVertices() const;
 
-	/**
+	/*
 	* Description:
 	* Breaks the polygon up into triangles via the ear clipping method.
 	*/
 	std::vector<ConvexPolygon> triangulate() const;
 
-	/**
+	/*
 	* Description:
-	* Determines the the winding order of the polygon's vertices
+	* Determines the winding order of the polygon's vertices
 	* based on the sign of the net area under the polygon's edges.
 	*
 	* Output:
@@ -107,7 +107,7 @@ public:
 	*/
 	static bool isClockwise(const std::vector<Vec>& vertices);
 
-	/**
+	/*
 	* Description:
 	* Uses vector math to check if any of the polygon's edges
 	* intersect each other.
@@ -118,7 +118,7 @@ public:
 	*/
 	static bool isSelfIntersecting(const std::vector<Vec>& vertices);
 
-	/**
+	/*
 	* Description:
 	* Converts a set of vertices into edges, where an edge a pair
 	* of vectors. The first vector is the offset, and the second 
@@ -126,9 +126,9 @@ public:
 	*/
 	static std::vector<std::pair<Vec, Vec>> getEdges(const std::vector<Vec>& vertices);
 
-	/**
+	/*
 	* Description:
-	* Seachs through the vertices untill the first
+	* Searches through the vertices until the first
 	* collinear vertex.
 	*
 	* Output:
@@ -140,12 +140,12 @@ public:
 	// Checks if the vertices have any collinear edges
 	static bool hasCollinearEdges(const std::vector<Vec>& vertices);
 
-	/**
+	/*
 	* Description:
 	* Loads all polygons from an SVG file, polygons being stored as (points="..."). Minimized SVG's work best.
 	*
 	* Pre-conditions:
-	* The list of vertices must be seperated by atleast 1 space, and the last character cannot be a space.
+	* The list of vertices must be separated by at least 1 space, and the last character cannot be a space.
 	* The SVG polygons must satisfy the rules of the Polygon class, otherwise the constructor will throw an exception.
 	*/
 	static std::vector<Polygon> readSvgPolygons(const char* pathToSVG);
@@ -156,7 +156,7 @@ protected:
 	// Used in the move constructor
 	Polygon() = default;
 
-	// Checks if the the current vector is to the left of the next vector
+	// Checks if the current vector is to the left of the next vector
 	// Required for convex vertices
 	static bool goingRight(const Vec& current, const Vec& next);
 
@@ -208,7 +208,7 @@ public:
 	// Return 0 vector if there is no collision
 	static Vec resolveCollision(const ConvexPolygon& moveableShape, const ConvexPolygon& fixedShape);
 
-	// Returns minimuim vector to resolve all collisions
+	// Returns minimum vector to resolve all collisions
 	static Vec resolveCollisions(const ConvexPolygon& moveableShape, const std::vector<ConvexPolygon>& fixedShapes);
 
 private:
@@ -216,7 +216,7 @@ private:
 	// Used in the move constructor
 	ConvexPolygon() = default;
 
-	// Used by ctor to check if the polygon is convex, also checks for collinear edges, self intersections, and a clockwise winding order
+	// Used by constructor to check if the polygon is convex, also checks for collinear edges, self intersections, and a clockwise winding order
 	static bool isConvex(const std::vector<Vec>& vertices);
 
 	// Returns a list of the edges of the polygon rotated 90 degrees
