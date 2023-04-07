@@ -108,7 +108,16 @@ bool GameLoader::init()
 		fprintf(stderr, "%s", TTF_GetError());
 		return false;
 	}
-	
+
+	// Display SDL version info
+	SDL_version compiled;
+	SDL_version linked;
+	SDL_VERSION(&compiled);
+	SDL_GetVersion(&linked);
+
+	printf("Compiled SDL Version: %u.%u.%u.\n", compiled.major, compiled.minor, compiled.patch);
+	printf("Linked SDL Version: %u.%u.%u.\n", linked.major, linked.minor, linked.patch);
+
 	// Print info about max texture dimensions
 	SDL_RendererInfo info;
 	if (SDL_GetRendererInfo(mRenderer.get(), &info) < 0)
@@ -148,7 +157,7 @@ mSearchGraph{ mCollisionMap }
 	// Temp testing
 	player.addComponent<MechanicalComponent>(entityPolygon);
 	// player.addComponent<BehaviorComponent>(&mCollisionMap, &player, 3500.f, 500.f, 7000.f);
-	player.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
+	player.addComponent<KeyPressAccelComponent>(&mEvent, 1000.f, 500.f, 250.f);
 	player.addComponent<CameraComponent>(mWindow.get());
 	player.addComponent<TextureComponent>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.png");
 	//player.addComponent<SharedTextureComponent<int>>(player.getComponent<CameraComponent>().getCamera(), *mRenderer.get(), "assets/images/triangle.png");
@@ -156,7 +165,7 @@ mSearchGraph{ mCollisionMap }
 
 
 	sob.addComponent<MechanicalComponent>(entityPolygon);
-	sob.addComponent<BehaviorComponent>(&mCollisionMap, &mSearchGraph, &player, 3500.f, 400.f, 7000.f);
+	sob.addComponent<BehaviorComponent>(&mCollisionMap, &mSearchGraph, &player, /*3500.f*/0.f, 400.f, 7000.f);
 	sob.addComponent<MapCollisionComponent>(mCollisionMap);
 	// sob.addComponent<KeyPressAccelComponent>(&mEvent, 5000.f, 500.f, 7000.f);
 	// sob.addComponent<CameraComponent>(mWindow.get());

@@ -43,7 +43,7 @@ CollisionMap::CollisionMap(const char* pathToSVG, int SVG_Width, int SVG_Height)
 
     // Get each polygon's triangles, reserve the minimum amount first
     mMapTriangles.reserve(mMapPolygons.size());
-    for (int i = 0; i < mMapPolygons.size(); ++i)
+    for (int i = 0; i < ssize(mMapPolygons); ++i)
     {
         auto triangles = mMapPolygons[i].triangulate();
         mMapTriangles.insert(mMapTriangles.end(), triangles.begin(), triangles.end());

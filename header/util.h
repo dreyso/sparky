@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL.h>
 
+#include <cstddef>
 #include <memory>
 
 
@@ -44,130 +45,17 @@ struct IdGen {
     }
 };
 
-inline int cycleIndex(int index, int length)
+inline ptrdiff_t cycleIndex(ptrdiff_t index, ptrdiff_t length)
 {
     if (index < 0)
     {
-        index %= static_cast<int>(length);
-        index += static_cast<int>(length);
+        index %= length;
+        index += length;
     }
-    else if (index >= static_cast<int>(length))
-        index %= static_cast<int>(length);
+    else if (index >= length)
+        index %= length;
 
     return index;
 }
-
-// A wrapper class that gives circular behavior to vectors
-// The List class being passed in must have size_t size() and operator[] methods
-template <class List>
-class CircularList
-{
-public:
-    CircularList(List& someList) : mList{ someList } {}
-
-    // Positive indices start from 0, negative start from the end
-    auto& operator[](int i)
-    {
-        i %= static_cast<int>(mList.size());
-        if (i < 0)
-            return mList[static_cast<int>(mList.size()) + i];
-
-        return mList[i];
-    }
-
-private:
-    List& mList;
-};
-
-// A wrapper class that gives circular behavior to vectors
-// The List class being passed in must have size_t size() and operator[] methods
-template <class List>
-class Circulator
-{
-public:
-    Circulator(List& someList, int index = 0) : mList{ someList }, mIndex{ index } 
-    {
-        correctIndex();
-    }
-    Circulator(const Circulator& other) : mList{ other.mList }, mIndex{ other.mIndexindex }{}
-
-    auto getIndex() const
-    {
-        return mIndex;
-    }
-
-    // Positive indices start from 0, negative start from the end
-    auto& operator++()
-    {
-        ++mIndex;
-        correctIndex();
-        return mList[mIndex];
-    }
-    
-    auto& operator--()
-    {
-        --mIndex;
-        correctIndex();
-        return mList[mIndex];
-    }
-
-    auto& operator+=(int addToIndex)
-    {
-        mIndex += addToIndex;
-        correctIndex();
-        return mList[mIndex];
-    }
-
-    auto& operator-=(int subFromIndex)
-    {
-        mIndex -= subFromIndex;
-        correctIndex();
-        return mList[mIndex];
-    }
-
-    auto operator+(int addToIndex) const
-    {
-        return Circulator{mList, mIndex + addToIndex};
-    }
-    auto operator-(int subFromIndex) const
-    {
-        return Circulator{ mList, mIndex - subFromIndex };
-    }
-    
-    auto& operator*()
-    {
-        return mList[mIndex];
-    }
-    
-    bool operator==(const Circulator& other) const
-    {
-        if (mIndex == other.mIndex)
-            return true;
-        
-        return false;
-    }
-    
-    bool operator!=(const Circulator& other) const
-    {
-        if (mIndex != other.mIndex)
-            return true;
-
-        return false;
-    }
-private:
-    void correctIndex()
-    {
-        if (mIndex < 0)
-        {
-            mIndex %= static_cast<int>(mList.size());
-            mIndex += static_cast<int>(mList.size());
-        }
-        else if (mIndex >= static_cast<int>(mList.size()))
-            mIndex %= static_cast<int>(mList.size());
-    }
-
-    List& mList;
-    int mIndex;
-};
 
 

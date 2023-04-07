@@ -7,20 +7,17 @@
 #include <SDL.h>
 
 
-KeyPressAccelComponent::KeyPressAccelComponent(Entity* owner, SDL_Event* event, float accelForce, float maxVel, float dragCap)
-	: Component{ owner }, mEvent{ event }, mAccelForce{ accelForce }, mMaxVel{ maxVel }, mDragCap{ dragCap }
+KeyPressAccelComponent::KeyPressAccelComponent(Entity* owner, SDL_Event* event, float accelForce, float maxVel, float dragConst)
+	: Component{ owner }, mEvent{ event }, mAccelConst{ accelForce }, mMaxVel{ maxVel }, mDragConst{ dragConst }
 {
-	// Get diagonal acceleration
-	float diagonalAccelForce = sqrtf(static_cast<float>(pow(mAccelForce, 2) + pow(mAccelForce, 2)));
-	
-    // Normalize it
-	mDiagonalAccelForce = (mAccelForce / diagonalAccelForce) * mAccelForce;
-
-    // Calculate the drag exponent (drag exp = log[base: max vel](accel force))
-    mDragExponent = logf(mAccelForce)/logf(mMaxVel);
+    // Find diagonal acceleration constant that sets diagonal acceleration to acceleration in a single direction
+    Vec diagonalAccel{ mAccelConst, mAccelConst };
+    diagonalAccel.normalize();
+    diagonalAccel *= mAccelConst;
+    mDiagonalAccelConst = diagonalAccel.getX();
 }
 
-// Check the keypresses and set acceleration accordingly
+// Check the key-presses and set acceleration accordingly
 void KeyPressAccelComponent::handleEvent()
 {
     // If a key was pressed
@@ -29,7 +26,7 @@ void KeyPressAccelComponent::handleEvent()
         Vec x{1.f, 0.f};
         Vec y{ 0.f, 1.f };
 
-        // Adjust the accelration
+        // Adjust the acceleration
         switch (mEvent->key.keysym.sym)
         {
         case SDLK_w: mAccelDirectionVec -= y; break;
@@ -55,33 +52,48 @@ void KeyPressAccelComponent::handleEvent()
     }
 }
 
+Vec KeyPressAccelComponent::calcDrag(const Vec& accel, const Vec& vel, float deltaTime)
+{
+    if (vel.isZeroVector())
+        return Vec{ 0.f, 0.f };
+
+    // Calculate drag magnitude using a custom piecewise function
+    float velMag = vel.getMagnitude();
+    float dragMagnitude = 0.f;
+
+    if (velMag > mMaxVel)
+        dragMagnitude = mAccelConst + mDragConst;
+    else if (velMag == mMaxVel)
+        dragMagnitude = mAccelConst;
+    else
+        dragMagnitude = mDragConst;
+ 
+    // Avoid inverting velocity
+    if (accel.isZeroVector())
+        dragMagnitude = (dragMagnitude * deltaTime) > velMag ? (velMag / deltaTime) : dragMagnitude;
+
+    // Find the drag vector, opposite direction to the velocity
+    Vec drag{ vel * -1.f };
+    drag.normalize();
+    drag *= dragMagnitude;
+
+    return drag;
+}
+
 // Update acceleration and mechanical component
 void KeyPressAccelComponent::update1(float deltaTime)
 {
-    // Determine accleration
+    // Determine acceleration
     if (mAccelDirectionVec.getX() != 0.f && mAccelDirectionVec.getY() != 0.f)
-        mAccel = mAccelDirectionVec * mDiagonalAccelForce;
+        mAccel = mAccelDirectionVec * mDiagonalAccelConst;
     else
-        mAccel = mAccelDirectionVec * mAccelForce;
+        mAccel = mAccelDirectionVec * mAccelConst;
 
     // Get reference to entity's velocity vector
-    const Vec& currentVel = mOwner->getComponent<MechanicalComponent>().getVel();
+    const Vec& vel = mOwner->getComponent<MechanicalComponent>().getVel();
+    float velMag = vel.getMagnitude();
 
-    // Calculate drag, which is a power of the velocity
-    if (currentVel.getX() != 0.f || currentVel.getY() != 0.f)
-    {
-        // Find drag
-        float dragMagnitude = powf(currentVel.getMagnitude(), mDragExponent);
-        // Cap the drag (cap must be greater than the acceleration to avoid being completely canceled)
-        dragMagnitude = std::min(dragMagnitude, 7000.f);
-        // Find the drag vector, opposite direction to the velocity
-        Vec drag{ currentVel * -1.f };
-        drag.normalize();
-        drag *= dragMagnitude;
-
-        // Apply drag to acceleration
-        mAccel += drag;
-    }
+    mAccel += calcDrag(mAccel, vel, deltaTime);
 
     // Update mechanics
     mOwner->getComponent<MechanicalComponent>().update(deltaTime, mAccel);

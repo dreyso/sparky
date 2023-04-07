@@ -215,7 +215,7 @@ void Vec::normalize()
 
 float Vec::getMagnitude() const
 {
-	return sqrtf(static_cast<float>(pow(mX, 2) + pow(mY, 2)));
+	return sqrt(static_cast<float>(pow(mX, 2) + pow(mY, 2)));
 }
 
 std::tuple<Solution, Vec, Vec> Vec::findIntersection(const Vec& A, const Vec& a, const Vec& B, const Vec& b)

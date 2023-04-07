@@ -11,7 +11,7 @@ void MechanicalComponent::update(float deltaTime, const Vec& accel)
     mVel += accel * deltaTime;
 
     // If magnitude of velocity falls below 30 (pixels per second), truncate to 0
-    if (mVel.getMagnitude() < 30.f)
+    if (mVel.getMagnitude() < 15.f)
         resetVel();
     else
     {

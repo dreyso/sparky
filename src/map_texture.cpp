@@ -18,7 +18,7 @@ int MapTexture::getTextureHeight() const
 void MapTexture::draw(const SDL_FRect& camera)
 {
     // Determine which portion of the texture to draw
-    SDL_Rect crop{ static_cast<int>(roundf(camera.x)), static_cast<int>(roundf(camera.y)), static_cast<int>(roundf(camera.w)), static_cast<int>(roundf(camera.h)) };
+    SDL_FRect crop{ camera.x, camera.y, camera.w, camera.h };
 
     // Draw the map
     mMapTexture.draw(0, 0, &crop);

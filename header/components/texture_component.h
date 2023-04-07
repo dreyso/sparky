@@ -8,7 +8,6 @@
 
 #include <SDL.h>
 
-#define TO_INT(floatVal) (static_cast<int>(roundf(floatVal)))
 #define GET_MESH(mOwner) (mOwner->getComponent<MechanicalComponent>().getCollisionMesh())
 
 class TextureComponent : public Component
@@ -52,7 +51,7 @@ public:
 		mTexture.reset(new Texture{ &defaultRenderer, pathOrText, defaultFont, textColor });
 	}
 
-	// Only useable for non-first objects
+	// Only usable for non-first objects
 	SharedTextureComponent(Entity* owner, const SDL_FRect& camera) : Component{ owner }, 
 	mOffsetFromPos{ -1 * GET_MESH(mOwner).getPos() }, mCamera{ &camera }
 	{
@@ -80,11 +79,11 @@ public:
 		auto& entityPos = collisionMesh.getPos();
 
 		// Render the entity relative to the camera
-		int drawPosX = TO_INT(entityPos.getX() + mOffsetFromPos.getX() - mCamera->x);
-		int drawPosY = TO_INT(entityPos.getY() + mOffsetFromPos.getY() - mCamera->y);
+		float drawPosX = entityPos.getX() + mOffsetFromPos.getX() - mCamera->x;
+		float drawPosY = entityPos.getY() + mOffsetFromPos.getY() - mCamera->y;
 
 		// Center of rotation (relative to texture position)
-		SDL_Point center{ TO_INT(-mOffsetFromPos.getX()),  TO_INT(-mOffsetFromPos.getY()) };
+		SDL_FPoint center{ -mOffsetFromPos.getX(),  -mOffsetFromPos.getY() };
 
 		// Draw
 		mTexture->draw(drawPosX, drawPosY, nullptr, static_cast<double>(collisionMesh.getRotAngle()), &center);

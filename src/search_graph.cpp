@@ -105,7 +105,7 @@ std::vector<Node*> SearchGraph::findNearestNodes(const Vec& point, int minCount)
     std::vector<Node*> nearestNodes;
     nearestNodes.reserve(10);
 
-    for (int i = 0; i < mNodes.size(); ++i)
+    for (int i = 0; i < ssize(mNodes); ++i)
     {
         if (isAccessible(point, mNodes[i].mPoint))
             nearestNodes.push_back(&mNodes[i]);
@@ -133,9 +133,9 @@ void SearchGraph::buildGraph()
 void SearchGraph::connectGraph()
 {
     // Iterate over each unique pair of nodes
-    for (int iNode = 0; iNode < mNodes.size(); ++iNode)
+    for (int iNode = 0; iNode < ssize(mNodes); ++iNode)
     {
-        for (int jNode = iNode + 1; jNode < mNodes.size(); ++jNode)
+        for (int jNode = iNode + 1; jNode < ssize(mNodes); ++jNode)
         {
             // If there a path between the nodes, "neighbor" them
             if (isAccessible(mNodes[iNode].mPoint, mNodes[jNode].mPoint))
@@ -233,7 +233,7 @@ bool SearchGraph::findPath(const Vec& start, const Vec& dest, std::stack<Vec>& p
 
     // -- Search -----------------------------------------
 
-    while (openSet.size() > 0)
+    while (ssize(openSet) > 0)
     {
         // Grab next best node according to the heuristic
         Node* currentNode = openSet[0];
@@ -264,7 +264,7 @@ bool SearchGraph::findPath(const Vec& start, const Vec& dest, std::stack<Vec>& p
 #ifndef NDEBUG
 
         // Heap test
-        for (int i = 0; i < 5 && i < openSet.size(); ++i)
+        for (int i = 0; i < 5 && i < ssize(openset); ++i)
             printf("|%f| ", openSet[i]->getFcost());
         printf("\n");
 #endif //NDEBUG

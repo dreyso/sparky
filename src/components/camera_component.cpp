@@ -29,7 +29,7 @@ void CameraComponent::update3(float deltaTime)
     float addX = (destX - mCamera.x) * (3.f * deltaTime);
     float addY = (destY - mCamera.y) * (3.f * deltaTime);
 
-    // Set a minimim value to increment every frame to avoid infinite approach
+    // Set a minimum value to increment every frame to avoid infinite approach
     if (addX < 0 && addX > -1.f)
         addX = -1.f;
     else if (addX > 0 && addX < 1.f)
@@ -40,7 +40,7 @@ void CameraComponent::update3(float deltaTime)
     else if (addY > 0 && addY < 1.f)
         addY = 1.f;
 
-    // Add to the camera's position, but avoid overshooting the the destination
+    // Add to the camera's position, but avoid overshooting the destination
     float tempX = mCamera.x + addX;
     if ((addX < 0.f && tempX < destX) || (addX > 0.f && tempX > destX))
         mCamera.x = destX;

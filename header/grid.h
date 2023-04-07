@@ -132,7 +132,7 @@ public:
             regionsUnderPoint.push_back(&mRegions[row - 1][col]);
 
         // If the point lies on both boundries, there is another region
-        if (regionsUnderPoint.size() == 3)
+        if (ssize(regionsUnderPoint) == 3)
             regionsUnderPoint.push_back(&mRegions[row - 1][col - 1]);
 
         return regionsUnderPoint;
@@ -141,7 +141,7 @@ public:
     // Returns the regions that intersect a rectangle
     std::vector<const RegionType*> getRegionsIntersectingRect(const Rect& AABB) const
     {
-        // Determine regions that inetrsect with the entity's AABB
+        // Determine regions that intersect with the entity's AABB
         int firstRow = static_cast<int>(AABB.y) / mRegionSideLength;
         if (firstRow < 0) firstRow = 0;
 

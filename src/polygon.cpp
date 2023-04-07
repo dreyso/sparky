@@ -94,7 +94,7 @@ Rect Rect::combine(const Rect& a, const Rect& b)
 
 void offsetVerticesBy(std::vector<Vec>& vertices, float distance)
 {
-	if (vertices.size() <= 3)
+	if (ssize(vertices) <= 3)
 		return;
 
 	auto calcDirection = [](const Vec& prev, const Vec& middle, const Vec& next)
@@ -117,7 +117,7 @@ void offsetVerticesBy(std::vector<Vec>& vertices, float distance)
 	// Handle first element being the middle vertex
 	vertices.front() += calcDirection(vertices.back(), vertices.front(), vertices[1]) * distance;
 
-	for (int iMiddle = 1; iMiddle < vertices.size() - 1; ++iMiddle)
+	for (int iMiddle = 1; iMiddle < ssize(vertices) - 1; ++iMiddle)
 	{
 		int prev = iMiddle - 1;
 		int next = iMiddle + 1;
@@ -141,7 +141,7 @@ void offsetVerticesBy(std::vector<Vec>& vertices, float distance)
 	}
 
 	// Handle last element being the middle vertex
-	vertices.back() += calcDirection(vertices[vertices.size() - 2], vertices.back(), vertices.front()) * distance;
+	vertices.back() += calcDirection(vertices[ssize(vertices) - 2], vertices.back(), vertices.front()) * distance;
 }
 
 std::vector<Vec> offsetVerticesBy(const std::vector<Vec>& vertices, float distance)
@@ -197,8 +197,7 @@ Polygon& Polygon::operator=(std::vector<Vec> vertices)
 bool Polygon::isClockwise(const std::vector<Vec>& vertices)
 {
 	float area = 0.f;
-
-	for (int i = 0; i < vertices.size() - 1; ++i)
+	for (ptrdiff_t i = 0; i < ssize(vertices) - 1; ++i)
 	{
 		// Get every (but last) adjacent pair of vertices
 		Vec 𝙫0{ vertices[i] };
@@ -218,25 +217,25 @@ bool Polygon::isClockwise(const std::vector<Vec>& vertices)
 
 bool Polygon::removeCollinearEdges(std::vector<Vec>& vertices)
 {
-	if (vertices.size() < 3)
+	if (ssize(vertices) < 3)
 		return false;
 
 	// Record if a collinear edge has been removed in the loop below
 	bool removedEdge = false;
 
 	// Get every trio of vertices
-	int iFirst = 0;
-	int second = iFirst + 1;
-	int third = iFirst + 2;
+	ptrdiff_t iFirst = 0;
+	ptrdiff_t second = iFirst + 1;
+	ptrdiff_t third = iFirst + 2;
 
-	while (iFirst < vertices.size() && vertices.size() >= 3)
+	while (iFirst < ssize(vertices) && ssize(vertices) >= 3)
 	{
 		// Wrap second and third vertices
-		if (iFirst > vertices.size() - 3)
+		if (iFirst > ssize(vertices) - 3)
 		{
-			iFirst = cycleIndex(iFirst, vertices.size());
-			second = cycleIndex(second, vertices.size());
-			third = cycleIndex(third, vertices.size());
+			iFirst = cycleIndex(iFirst, ssize(vertices));
+			second = cycleIndex(second, ssize(vertices));
+			third = cycleIndex(third, ssize(vertices));
 		}
 
 		// Define 2 vectors from the first vertex to the other 2
@@ -251,7 +250,7 @@ bool Polygon::removeCollinearEdges(std::vector<Vec>& vertices)
 			removedEdge = true;
 
 			// Last element check
-			iFirst = std::min((int)vertices.size() - 1, iFirst);
+			iFirst = std::min(ssize(vertices) - 1, iFirst);
 
 			// Avoid moving forward without checking again
 			--iFirst;
@@ -267,21 +266,21 @@ bool Polygon::removeCollinearEdges(std::vector<Vec>& vertices)
 
 bool Polygon::hasCollinearEdges(const std::vector<Vec>& vertices)
 {
-	if (vertices.size() < 3)
+	if (ssize(vertices) < 3)
 		return false;
 
-	for (int iFirst = 0; iFirst < vertices.size(); ++iFirst)
+	for (ptrdiff_t iFirst = 0; iFirst < ssize(vertices); ++iFirst)
 	{
 		// Get every trio of vertices
-		int second = iFirst + 1;
-		int third = iFirst + 2;
+		ptrdiff_t second = iFirst + 1;
+		ptrdiff_t third = iFirst + 2;
 
 		// Wrap second and third vertices
-		if (iFirst > vertices.size() - 3)
+		if (iFirst > ssize(vertices) - 3)
 		{
-			iFirst = cycleIndex(iFirst, vertices.size());
-			second = cycleIndex(second, vertices.size());
-			third = cycleIndex(third, vertices.size());
+			iFirst = cycleIndex(iFirst, ssize(vertices));
+			second = cycleIndex(second, ssize(vertices));
+			third = cycleIndex(third, ssize(vertices));
 		}
 
 		// Define 2 vectors from the first vertex to the other 2
@@ -299,18 +298,18 @@ bool Polygon::hasCollinearEdges(const std::vector<Vec>& vertices)
 bool Polygon::isSelfIntersecting(const std::vector<Vec>& vertices)
 {
 	// Triangles cannot self intersect
-	if (vertices.size() == 3)
+	if (ssize(vertices) == 3)
 		return false;
 
 	auto edges = getEdges(vertices);
 
 	// Check for intersection between all edges
-	for (int iEdge = 0; iEdge < edges.size(); ++iEdge)
+	for (int iEdge = 0; iEdge < ssize(edges); ++iEdge)
 	{
-		for (int jEdge = iEdge + 2; jEdge < edges.size(); ++jEdge)
+		for (int jEdge = iEdge + 2; jEdge < ssize(edges); ++jEdge)
 		{
 			// First and last elements are adjacent, skip them
-			if (iEdge == 0 && jEdge == edges.size() - 1)
+			if (iEdge == 0 && jEdge == ssize(edges) - 1)
 				continue;
 
 			auto solution = Vec::findIntersection(edges[iEdge].first, edges[iEdge].second, edges[jEdge].first, edges[jEdge].second);
@@ -326,9 +325,9 @@ bool Polygon::isSelfIntersecting(const std::vector<Vec>& vertices)
 
 std::vector<std::pair<Vec, Vec>> Polygon::getEdges(const std::vector<Vec>& vertices)
 {
-	std::vector<std::pair<Vec, Vec>> edges(vertices.size());
+	std::vector<std::pair<Vec, Vec>> edges(ssize(vertices));
 
-	for (int i = 0; i < edges.size() - 1; ++i)
+	for (ptrdiff_t i = 0; i < ssize(edges) - 1; ++i)
 	{
 		// Store the offset of each edge
 		edges[i].first = vertices[i];
@@ -348,7 +347,7 @@ void Polygon::integrityCheck()
 {
 	removeCollinearEdges(mAbsoluteVertices);    // Remove all collinear vertices from the polygon
 
-	if (mAbsoluteVertices.size() < 3)            // Polygon must contain at least 3 vertices
+	if (ssize(mAbsoluteVertices) < 3)            // Polygon must contain at least 3 vertices
 		throw(std::invalid_argument{ "Error: Open polygon\n" });
 	else if (isClockwise(mAbsoluteVertices) == false)             // Polygon vertices must be in clockwise order
 		throw(std::invalid_argument{ "Error: Polygon vertices not in clockwise order\n" });
@@ -384,7 +383,7 @@ void Polygon::initPos()
 	};
 
 	// Cross every adjacent pair of vertices
-	for (int i = 0; i < mAbsoluteVertices.size() - 1; ++i)
+	for (ptrdiff_t i = 0; i < ssize(mAbsoluteVertices) - 1; ++i)
 		addWeightedCentroid(mAbsoluteVertices[i], mAbsoluteVertices[i + 1]);
 
 	// Add last triangle
@@ -457,13 +456,13 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
 	std::vector<ConvexPolygon> triangles;   // Array to be returned
 
 	 // Try every consecutive trio of vertices start is arbitrary
-	int iMiddle = -1;
-	while (vertices.size() > 3)
+	ptrdiff_t iMiddle = -1;
+	while (ssize(vertices) > 3)
 	{
 		// Try next trio
-		iMiddle = cycleIndex(++iMiddle, vertices.size());
-		int prev = cycleIndex(iMiddle - 1, vertices.size());
-		int next = cycleIndex(iMiddle + 1, vertices.size());
+		iMiddle = cycleIndex(++iMiddle, ssize(vertices));
+		ptrdiff_t prev = cycleIndex(iMiddle - 1, ssize(vertices));
+		ptrdiff_t next = cycleIndex(iMiddle + 1, ssize(vertices));
 
 		// -- Test if the vertex is convex -----------------------------------------
 
@@ -480,7 +479,7 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
 		// -- Test if any vertices fall inside the triangle -----------------------------------------
 
 		bool found = false;
-		auto iCurrent = cycleIndex(iMiddle + 2, vertices.size());
+		auto iCurrent = cycleIndex(iMiddle + 2, ssize(vertices));
 
 		while (!found && iCurrent != prev)
 		{
@@ -490,7 +489,7 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
 			// Cross each vector with its respective edge vector
 			found = (goingRight(𝙫0, arr[0]) && goingRight(𝙫1, arr[1]) && goingRight(𝙫2, arr[2]));
 
-			iCurrent = cycleIndex(++iCurrent, vertices.size());
+			iCurrent = cycleIndex(++iCurrent, ssize(vertices));
 		}
 
 		// Skip triangles that contain vertices
@@ -506,7 +505,7 @@ std::vector<ConvexPolygon> Polygon::triangulate() const
 		vertices.erase(vertices.begin() + iMiddle);
 
 		// Last element check
-		iMiddle = std::min((int)vertices.size() - 1, iMiddle);
+		iMiddle = std::min(ssize(vertices) - 1, iMiddle);
 
 		// Avoid changing indices
 		iMiddle -= 1;
@@ -562,8 +561,8 @@ void Polygon::rotateBy(float degrees)
 
 void Polygon::updateAbsoluteVertices()
 {
-	// Absolute vetices are the sum of the polygon's position and its corresponding relative vertices
-	for (int i = 0; i < mRelativeVertices.size(); ++i)
+	// Absolute vertices are the sum of the polygon's position and its corresponding relative vertices
+	for (int i = 0; i < ssize(mRelativeVertices); ++i)
 		mAbsoluteVertices[i] = mPos + mRelativeVertices[i];
 }
 
@@ -653,21 +652,21 @@ ConvexPolygon& ConvexPolygon::operator=(std::vector<Vec> vertices)
 // Note: If the polygon ends up convex, it is guaranteed to be clockwise and have no collinear edges.
 bool ConvexPolygon::isConvex(const std::vector<Vec>& vertices)
 {
-	if (vertices.size() < 3)
+	if (ssize(vertices) < 3)
 		return false;
 
-	for (int iFirst = 0; iFirst < vertices.size(); ++iFirst)
+	for (ptrdiff_t iFirst = 0; iFirst < ssize(vertices); ++iFirst)
 	{
 		// Get every trio of vertices
-		int second = iFirst + 1;
-		int third = iFirst + 2;
+		ptrdiff_t second = iFirst + 1;
+		ptrdiff_t third = iFirst + 2;
 
 		// Wrap second and third vertices
-		if (iFirst > vertices.size() - 3)
+		if (iFirst > ssize(vertices) - 3)
 		{
-			iFirst = cycleIndex(iFirst, vertices.size());
-			second = cycleIndex(second, vertices.size());
-			third = cycleIndex(third, vertices.size());
+			iFirst = cycleIndex(iFirst, ssize(vertices));
+			second = cycleIndex(second, ssize(vertices));
+			third = cycleIndex(third, ssize(vertices));
 		}
 
 		// Define 2 vectors from the first vertex to the other 2
@@ -701,7 +700,7 @@ bool ConvexPolygon::containsPoint(const Vec& point) const
 	auto& vertices = this->getVertices();
 	auto edges = Polygon::getEdges(vertices);
 
-	for (int i = 0; i < vertices.size(); ++i)
+	for (int i = 0; i < ssize(vertices); ++i)
 	{
 		// Cross each edge vector with a vector that points from the vertex to the query point
 		// if the cross product is not greater than 0, then the point is outside of the polygon
@@ -829,9 +828,9 @@ std::vector<Vec> ConvexPolygon::getCollisionAxi() const
 {
 	auto& vertices = getVertices();
 
-	std::vector<Vec> edges(vertices.size());
+	std::vector<Vec> edges(ssize(vertices));
 
-	for (int i = 0; i < edges.size() - 1; ++i)
+	for (ptrdiff_t i = 0; i < ssize(edges) - 1; ++i)
 	{
 		// Subtract current vertex from the next one for a clockwise perimeter
 		edges[i] = vertices[i + 1] - vertices[i];
@@ -865,7 +864,7 @@ static std::vector<Vec> readInFloats(std::string SVG_PolygonText)
 			iChar = ' ';
 	}
 	// Remove any spaces at the end of the list
-	while (SVG_PolygonText[SVG_PolygonText.size() - 1] == ' ')
+	while (SVG_PolygonText[ssize(SVG_PolygonText) - 1] == ' ')
 		SVG_PolygonText.pop_back();
 
 	// Convert string into a stream for easy reading in
@@ -905,7 +904,7 @@ static void fixSvgVertices(std::vector<Vec>& vertices)
 		std::reverse(vertices.begin(), vertices.end());
 
 	// Remove last vertex if it is a duplicate of the first (typical for SVG polygons)
-	if (vertices[0] == vertices[vertices.size() - 1])
+	if (vertices[0] == vertices[ssize(vertices) - 1])
 		vertices.pop_back();
 }
 

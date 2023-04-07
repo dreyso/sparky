@@ -10,22 +10,23 @@ class KeyPressAccelComponent : public Component
 {
 public:
 	KeyPressAccelComponent() = delete;
-	KeyPressAccelComponent(Entity* owner, SDL_Event* event, float accelForce, float maxVel, float dragCap);
+	KeyPressAccelComponent(Entity* owner, SDL_Event* event, float accelForce, float maxVel, float dragConst);
 	virtual ~KeyPressAccelComponent() = default;
 
-	// Check the keypresses and set acceleration accordingly
+	// Check the key-presses and set acceleration accordingly
 	void handleEvent() override;
 	// Update acceleration and mechanical component
 	void update1(float deltaTime) override;
 
+	Vec calcDrag(const Vec& accel, const Vec& vel, float deltaTime);
+
 private:
 	SDL_Event* mEvent;            // non-owning pointer
-	float mAccelForce;            // The force the entity applies to accelerate
-	float mDiagonalAccelForce;    // The force vector normailzied
+	float mAccelConst;            // The magnitude of the entity's acceleration
+	float mDiagonalAccelConst;    // The magnitude of the entity's diagonal acceleration
 
 	float mMaxVel;                // Enforced by the force of drag
-	float mDragExponent;          // exponent = log[base: max vel](accel force)
-	float mDragCap;               // Arbitrary maxiumim possible value for drag force
+	float mDragConst;             // Arbitrary drag value
 
 	Vec mAccel{ 0.f, 0.f };
 	Vec mAccelDirectionVec{ 0.f,0.f };
